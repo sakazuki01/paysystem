@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 pub mod username;
 
-declare_id!("11111111111111111111111111111111");
+declare_id!("9QA6zUCshCS3DjgGrwSMw4vkuLM3dGp4TmZ4U98tEakt");
 
 #[program]
 pub mod pay_system {

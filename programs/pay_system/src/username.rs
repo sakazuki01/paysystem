@@ -18,17 +18,58 @@ pub enum UsernameError {
 
 /// Lowercase ASCII letters only. Non-ASCII is left as-is so validation rejects it.
 pub fn normalize(input: &str) -> String {
-    unimplemented!()
+    input.to_ascii_lowercase()
 }
 
 /// Lookalike skeleton of an already-normalized name. Order matters; see PAY_SYSTEM_LOGIC.md.
 pub fn skeleton(normalized: &str) -> String {
-    unimplemented!()
+    // 1. drop underscores
+    let chars: Vec<char> = normalized.chars().filter(|&c| c != '_').collect();
+    // 2. "rn" -> "m", single left-to-right pass
+    let mut replaced = Vec::with_capacity(chars.len());
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == 'r' && chars.get(i + 1) == Some(&'n') {
+            replaced.push('m');
+            i += 2;
+        } else {
+            replaced.push(chars[i]);
+            i += 1;
+        }
+    }
+    // 3. single-character map, then 4. collapse runs
+    let mut out = String::with_capacity(replaced.len());
+    for c in replaced {
+        let mapped = match c {
+            '0' => 'o',
+            '1' | 'i' => 'l',
+            '5' => 's',
+            '3' => 'e',
+            '8' => 'b',
+            other => other,
+        };
+        if !out.ends_with(mapped) {
+            out.push(mapped);
+        }
+    }
+    out
 }
 
 /// Returns `(normalized, skeleton)` or the reason the name is rejected.
 pub fn validate(input: &str) -> Result<(String, String), UsernameError> {
-    unimplemented!()
+    let normalized = normalize(input);
+    let len = normalized.len();
+    let charset_ok = normalized
+        .bytes()
+        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
+    if !(MIN_LEN..=MAX_LEN).contains(&len) || !charset_ok {
+        return Err(UsernameError::Invalid);
+    }
+    if RESERVED_USERNAMES.contains(&normalized.as_str()) {
+        return Err(UsernameError::Reserved);
+    }
+    let skel = skeleton(&normalized);
+    Ok((normalized, skel))
 }
 
 #[cfg(test)]

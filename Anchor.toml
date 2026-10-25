@@ -7,7 +7,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-pay_system = "11111111111111111111111111111111"
+pay_system = "9QA6zUCshCS3DjgGrwSMw4vkuLM3dGp4TmZ4U98tEakt"
+
+[registry]
+url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"

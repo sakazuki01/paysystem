@@ -160,8 +160,10 @@ test("3. lookalikes of alex are rejected", async () => {
     assert.equal(await diagnose(input, tg), why, input);
     await expectFail(register(input, tg), ALREADY_IN_USE);
   }
-  // Un-normalized input sent straight to the program is refused outright.
-  await expectFail(registerRaw("ALEX", "alex", freshTelegramId()), "InvalidUsername");
+  // Raw "ALEX" is refused too, but its skeleton PDA already exists, so `init` fails first.
+  await expectFail(registerRaw("ALEX", "alex", freshTelegramId()), ALREADY_IN_USE);
+  // With a fresh skeleton the handler is reached: un-normalized names are InvalidUsername.
+  await expectFail(registerRaw("Zed99", "zed9", freshTelegramId()), "InvalidUsername");
 });
 
 test("4. a Telegram ID cannot register a second name", async () => {

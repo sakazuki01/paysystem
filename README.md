@@ -14,21 +14,29 @@ Spec: [`PAY_SYSTEM_LOGIC.md`](PAY_SYSTEM_LOGIC.md) · Design: [`design/DESIGN_SP
 ## Prerequisites
 
 - Node ≥ 22.18 (runs `.ts` tests natively)
-- For the program: Rust, Solana CLI, Anchor **0.32.1**. On Windows use WSL + Ubuntu, then inside Ubuntu run Solana's installer (installs Rust, Solana, Anchor via AVM):
+- For the program (Linux, or WSL + Ubuntu on Windows). Verified with:
+  rustc 1.99.1 · Agave/Solana CLI **4.2.2** · anchor-cli **0.32.1** (via avm) · Node 24.22.1 · platform-tools **v1.58** (Cargo 1.95).
+  Agave's default platform-tools ship Cargo 1.84, which can't parse current edition-2024 crates, so the build pins v1.58 (`scripts/anchor-test.sh` does this).
   ```bash
-  curl --proto '=https' --tlsv1.2 -sSfL https://solana-install.solana.workers.dev | bash
-  avm install 0.32.1 && avm use 0.32.1
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  sh -c "$(curl -sSfL https://release.anza.xyz/v4.2.2/install)"
+  cargo install --git https://github.com/coral-xyz/anchor avm --locked && avm install 0.32.1 && avm use 0.32.1
+  solana-keygen new --no-bip39-passphrase   # local wallet for the validator (never committed)
   ```
 
 ## Build and test
 
 ```bash
-npm install
-npm run test:shared              # username rules vs shared vectors
-cargo test -p pay_system         # same vectors, Rust side
-anchor build && anchor test      # program on a local validator
+npm install                      # Windows/host side (Mini App + shared + anchor TS deps)
+npm run test:shared              # username + recipient rules vs shared vectors
+cargo test -p pay_system         # same username vectors, Rust side
+bash scripts/anchor-test.sh      # keys sync → SBF build → IDL → local validator → anchor tests
 npm test -w @pay-system/miniapp  # Mini App
 ```
+
+On WSL with the repo under `/mnt/c`: set `CARGO_TARGET_DIR=/root/target/pay_system` so build output stays off the Windows/OneDrive filesystem. The script copies the `.so` back into `target/deploy` and keeps the validator ledger in `~/.cache/pay-system`. Don't run `npm install` inside WSL against the Windows `node_modules`; the anchor tests only need pure-JS packages, which work from either side.
+
+The program id comes from `target/deploy/pay_system-keypair.json` (gitignored, generated on first run). `anchor keys sync` (run by the script) rewrites `declare_id!` and `Anchor.toml` to match your local keypair.
 
 ## Program: accounts
 

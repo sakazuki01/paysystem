@@ -6,7 +6,7 @@
   "scripts": {
     "test:shared": "npm test --workspace @pay-system/shared",
     "test:rust": "cargo test -p pay_system",
-    "test:anchor": "anchor test"
+    "test:anchor": "bash scripts/anchor-test.sh"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",
