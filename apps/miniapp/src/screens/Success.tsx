@@ -1,15 +1,15 @@
 import { useEffect } from "react";
 import { Check, ExternalLink } from "lucide-react";
 import { Screen } from "../components/Screen";
-import { explorerTxUrl, formatUsd, settledCaption } from "../lib/format";
+import { explorerTxUrl, formatUsd, recipientLabel, settledCaption } from "../lib/format";
 import { useNav, type SuccessInfo } from "../state/nav";
 import { haptic, tg, useMainButton } from "../telegram/telegram";
 
-function headline({ kind, amountCents, counterparty }: SuccessInfo): string {
+function headline({ kind, amountCents, counterparty, toAddress }: SuccessInfo): string {
   const amount = formatUsd(amountCents);
   if (kind === "received") return `You received ${amount} from @${counterparty}`;
   if (kind === "refunded") return `Refunded ${amount}`;
-  return `Sent ${amount} to @${counterparty}`;
+  return `Sent ${amount} to ${recipientLabel({ handle: counterparty, toAddress })}`;
 }
 
 /** S8 — Success. The one celebratory moment. */

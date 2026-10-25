@@ -19,6 +19,17 @@ export function amountAria(cents: number): string {
 /** Wallet address fingerprint: 7xKX…9fQz. */
 export const fingerprint = (address: string) => `${address.slice(0, 4)}…${address.slice(-4)}`;
 
+/** "@alex", or the fingerprint for a raw wallet address (never "@7xKX…"). */
+export const recipientLabel = (r: { handle: string; toAddress?: string }) =>
+  r.toAddress ? fingerprint(r.toAddress) : `@${r.handle}`;
+
+/** The full address in groups of 4 over 3 lines, so it can be checked by eye (spec S6). */
+export function addressLines(address: string): string[][] {
+  const groups = address.match(/.{1,4}/g) ?? [];
+  const perLine = Math.ceil(groups.length / 3);
+  return [groups.slice(0, perLine), groups.slice(perLine, perLine * 2), groups.slice(perLine * 2)];
+}
+
 export const settledCaption = (settleMs: number) => `Settled in ${(settleMs / 1000).toFixed(1)} s · Free`;
 
 const monthYear = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" });

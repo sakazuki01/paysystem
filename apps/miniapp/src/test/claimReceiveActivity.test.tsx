@@ -68,7 +68,7 @@ describe("S9 receive", () => {
     expect(await screen.findByRole("img", { name: /QR code/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "@sakz" })).toBeInTheDocument();
     expect(screen.getByText("Wallet address")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Wallet address 7xKX…9fQz/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Wallet address Ea71…4efQ/ })).toBeInTheDocument();
     expect(mainButton()).toHaveTextContent("Share");
 
     const open = vi.spyOn(window.Telegram!.WebApp, "openTelegramLink").mockImplementation(() => {});

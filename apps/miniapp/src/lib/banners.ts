@@ -7,15 +7,20 @@ export interface SafetyInput {
   exists: boolean;
   timesPaid: number;
   createdAt?: number;
+  /** Raw wallet address recipient: one warning, no first-time / new-account banners. */
+  toAddress?: string;
 }
 
 export interface SafetyBanner {
-  id: "first-time" | "new-account" | "escrow";
+  id: "first-time" | "new-account" | "escrow" | "address";
   variant: "warning" | "info";
   text: string;
 }
 
 export function selectSafetyBanners(r: SafetyInput, now: number = Date.now()): SafetyBanner[] {
+  if (r.toAddress) {
+    return [{ id: "address", variant: "warning", text: "Double-check this address — payments can't be undone." }];
+  }
   const out: SafetyBanner[] = [];
   // Warnings are about registered accounts; an escrow recipient gets only the info banner.
   if (r.exists && r.timesPaid === 0) {

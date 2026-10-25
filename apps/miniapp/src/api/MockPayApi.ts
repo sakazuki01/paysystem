@@ -17,6 +17,12 @@ import {
 import { fingerprint } from "../lib/format";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Real on-curve keys, so address validation behaves like the chain. */
+export const SEED_WALLETS = {
+  sakz: "Ea71a3Tiu2sxLW6xYDghMDGKDtfoyhZSNyHypyrH4efQ",
+  alex: "Da91Z1SneNKSigEVtVxPvpxBcsf4mJgPJKyRUnFTbnqa",
+} as const;
 export type FailMode = "beforeLand" | "afterLand";
 export const ESCROW_TTL_MS = 7 * DAY_MS;
 
@@ -182,6 +188,12 @@ export class MockPayApi implements PayApi {
     };
   }
 
+  async resolveAddress(address: string): Promise<{ username?: string }> {
+    await this.read();
+    for (const a of this.accounts.values()) if (a.wallet === address && a.username) return { username: a.username };
+    return {};
+  }
+
   async getIncomingEscrows(): Promise<Escrow[]> {
     await this.read();
     const now = this.now();
@@ -235,11 +247,26 @@ export class MockPayApi implements PayApi {
     return receipt;
   }
 
-  private transfer({ to, amountCents, note }: SendInput, settleMs: number): SendResult {
+  private transfer({ to, toAddress, amountCents, note }: SendInput, settleMs: number): SendResult {
     const me = this.me();
-    const h = handleOf(to);
     if (!(amountCents > 0)) throw new PayApiError("insufficient_funds", "Amount must be positive");
     if (amountCents > me.balanceCents) throw new PayApiError("insufficient_funds");
+
+    if (toAddress) {
+      const owner = [...this.accounts.values()].find((a) => a.wallet === toAddress && a.username);
+      if (owner) return this.transfer({ to: owner.username!, amountCents, note, intentId: "" }, settleMs);
+      // A wallet outside Pay System: the USDC simply leaves (the fee payer creates its token account).
+      me.balanceCents -= amountCents;
+      const activityId = newId("act");
+      const signature = randomBase58(88);
+      me.activity.push({
+        id: activityId, direction: "out", counterparty: fingerprint(toAddress), toAddress,
+        amountCents, note, status: "sent", createdAt: this.now(), signature,
+      });
+      return { settleMs, signature, activityId };
+    }
+
+    const h = handleOf(to ?? "");
     if (!HANDLE_RE.test(h)) throw new PayApiError("network", "Bad handle");
 
     const now = this.now();
@@ -387,9 +414,9 @@ export class MockPayApi implements PayApi {
     };
 
     add({ telegramHandle: "sakz", username: "sakz", displayName: "Sakz Kaito", avatarUrl: "/avatars/sakz.svg",
-      createdAt: Date.UTC(2026, 8, 2), balanceCents: 12450, wallet: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU9fQz" });
+      createdAt: Date.UTC(2026, 8, 2), balanceCents: 12450, wallet: SEED_WALLETS.sakz });
     add({ telegramHandle: "alex", username: "alex", displayName: "Alex Rivera", avatarUrl: "/avatars/alex.svg",
-      createdAt: Date.UTC(2026, 7, 14), balanceCents: 8000 });
+      createdAt: Date.UTC(2026, 7, 14), balanceCents: 8000, wallet: SEED_WALLETS.alex });
     add({ telegramHandle: "maya", username: "maya", displayName: "Maya Chen", createdAt: Date.UTC(2026, 8, 20),
       balanceCents: 4000 });
     add({ telegramHandle: "alex2", username: "alex2", displayName: "Alex", createdAt: now - 3 * H, balanceCents: 0 });

@@ -445,6 +445,46 @@ p {
 .username-input__field::placeholder { color: var(--text-muted-on-card); }
 .search__input::-webkit-search-cancel-button { display: none; }
 
+.search__tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--touch);
+  height: var(--touch);
+  margin-right: calc(-1 * var(--s-2));
+  border-radius: var(--r-sm);
+  color: var(--brand-text);
+}
+
+.search__tool + .search__tool { margin-left: calc(-1 * var(--s-2)); }
+
+.helper {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font: var(--type-label);
+}
+
+.helper svg { flex: none; }
+.helper--danger { color: var(--danger-text); }
+
+.mono { font: var(--type-mono); }
+
+/* S6 wallet-address variant: full address, groups of 4, 3 lines */
+.address-full {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: var(--s-2);
+  font: var(--type-mono);
+  font-size: 15px;
+  line-height: 22px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
 /* ---------- S5 Amount ---------- */
 
 .amount { gap: var(--s-3); }

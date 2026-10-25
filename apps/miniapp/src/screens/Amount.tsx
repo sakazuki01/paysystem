@@ -5,7 +5,7 @@ import { Screen } from "../components/Screen";
 import { AmountDisplay, Keypad } from "../components/amount";
 import { Avatar, Chip, Skeleton } from "../components/primitives";
 import { amountStatus, applyKey, centsToRaw, rawToCents, type KeypadKey } from "../lib/amount";
-import { formatUsd } from "../lib/format";
+import { formatUsd, recipientLabel } from "../lib/format";
 import { useApp, useAsync } from "../state/app";
 import { useNav } from "../state/nav";
 import { haptic, useMainButton } from "../telegram/telegram";
@@ -48,9 +48,15 @@ export function Amount({ recipient }: { recipient: RecipientInfo }) {
 
   return (
     <Screen label="Amount" className="amount">
-      <div className="recipient-pill" aria-label={`Sending to @${recipient.handle}`} role="note">
-        <Avatar name={recipient.displayName ?? recipient.handle} src={recipient.avatarUrl} size={24} link={!recipient.exists} />
-        <span>@{recipient.handle}</span>
+      <div className="recipient-pill" aria-label={`Sending to ${recipientLabel(recipient)}`} role="note">
+        <Avatar
+          name={recipient.displayName ?? recipient.handle}
+          src={recipient.avatarUrl}
+          size={24}
+          link={!recipient.exists && !recipient.toAddress}
+          wallet={!!recipient.toAddress}
+        />
+        <span className={recipient.toAddress ? "mono" : undefined}>{recipientLabel(recipient)}</span>
       </div>
 
       <AmountDisplay raw={raw} shakeSignal={shake} />

@@ -28,7 +28,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     expect(mainButton()).not.toBeVisible(); // Home uses in-page Send/Receive
 
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "alex");
     await user.click(await screen.findByRole("button", { name: /@alex\b.*Paid 6 times/ }));
 
     await tapKeys(user, "10");
@@ -54,7 +54,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     const { user } = setup();
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "@newfriend");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "@newfriend");
     await user.click(await screen.findByRole("button", { name: /Send to @newfriend on Telegram/ }));
     await user.click(screen.getByRole("button", { name: "$5" }));
     await user.click(mainButton());
@@ -72,7 +72,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     const { user } = setup();
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "a1ex");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "a1ex");
     await user.click(await screen.findByRole("button", { name: "Did you mean @alex? You've paid them 6 times." }));
     expect(await screen.findByLabelText("Sending to @alex")).toBeInTheDocument();
   });
@@ -81,7 +81,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     const { user } = setup();
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex2");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "alex2");
     await user.click(await screen.findByRole("button", { name: /^@alex2\b/ }));
     await tapKeys(user, "1");
     await user.click(mainButton());
@@ -93,7 +93,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     const { api, user } = setup();
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "alex");
     await user.click(await screen.findByRole("button", { name: /@alex\b.*Paid 6 times/ }));
     await tapKeys(user, "7");
     await user.click(mainButton());
@@ -113,7 +113,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     const { api, user } = setup({ latencyMs: 150 });
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex2");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "alex2");
     await user.click(await screen.findByRole("button", { name: /^@alex2\b/ }));
     await screen.findByRole("group", { name: "Keypad" });
     await screen.findByText(/^Balance \$/); // Review stays disabled until the balance loads
@@ -149,7 +149,7 @@ describe("S5 amount rules in the UI", () => {
     const { user } = setup();
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "alex");
     await user.click(await screen.findByRole("button", { name: /@alex\b.*Paid 6 times/ }));
 
     expect(screen.getByText("Balance $124.50")).toBeInTheDocument();
@@ -166,7 +166,7 @@ describe("S5 amount rules in the UI", () => {
     const { user } = setup();
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "alex");
     await user.click(await screen.findByRole("button", { name: /@alex\b.*Paid 6 times/ }));
     const pad = screen.getByRole("group", { name: "Keypad" });
     act(() => {
@@ -179,7 +179,7 @@ describe("S5 amount rules in the UI", () => {
     const { user } = setup();
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
-    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex");
+    await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "alex");
     await user.click(await screen.findByRole("button", { name: /@alex\b.*Paid 6 times/ }));
     await tapKeys(user, "1.259");
     expect(screen.getByLabelText("1 dollar and 25 cents")).toHaveClass("is-shaking");

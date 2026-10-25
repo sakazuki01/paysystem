@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { AlertCircle, AlertTriangle, CheckCircle2, Info, Link2 } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, Link2, Wallet } from "lucide-react";
 import type { ActivityStatus } from "../api/PayApi";
 import { fingerprint as toFingerprint } from "../lib/format";
 import { useToast } from "../state/toast";
@@ -18,19 +18,23 @@ export function Avatar({
   src,
   size = 40,
   link = false,
+  wallet = false,
 }: {
   name: string;
   src?: string;
   size?: 24 | 40 | 64;
-  /** Escrow recipient (not on Pay System): brand-soft circle with a link icon. */
+  /** Escrow recipient (not on Pay System): a link icon instead of initials. */
   link?: boolean;
+  /** Raw wallet address recipient: a wallet icon. */
+  wallet?: boolean;
 }) {
   const [broken, setBroken] = useState(false);
   const style = { width: size, height: size };
-  if (link) {
+  if (link || wallet) {
+    const Icon = wallet ? Wallet : Link2;
     return (
       <span className="avatar avatar--initials" style={style} aria-hidden="true">
-        <Link2 size={size >= 64 ? 28 : size >= 40 ? 20 : 14} strokeWidth={2} />
+        <Icon size={size >= 64 ? 28 : size >= 40 ? 20 : 14} strokeWidth={2} />
       </span>
     );
   }

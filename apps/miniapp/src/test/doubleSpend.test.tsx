@@ -17,7 +17,7 @@ async function toConfirm(opts: ConstructorParameters<typeof MockPayApi>[0] = {})
   render(<App api={api} />);
   await screen.findByText("$124.50");
   await user.click(screen.getByRole("button", { name: "Send" }));
-  await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex");
+  await user.type(screen.getByRole("searchbox", { name: "Username, @handle or wallet address" }), "alex");
   await user.click(await screen.findByRole("button", { name: /@alex\b.*Paid 6 times/ }));
   const pad = await screen.findByRole("group", { name: "Keypad" });
   await user.click(within(pad).getByRole("button", { name: "1" }));

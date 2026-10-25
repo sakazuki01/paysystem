@@ -6,7 +6,7 @@ import { Avatar, Banner, Card, Fingerprint, Spinner } from "../components/primit
 import { rawToCents } from "../lib/amount";
 import { selectSafetyBanners } from "../lib/banners";
 import { errorCopy, NOT_LANDED } from "../lib/errors";
-import { amountAria, formatUsd, sinceCaption } from "../lib/format";
+import { addressLines, amountAria, formatUsd, sinceCaption } from "../lib/format";
 import { waitForPayment } from "../lib/paymentStatus";
 import { newIntentId, useSingleFlight } from "../lib/useSingleFlight";
 import { useApp } from "../state/app";
@@ -51,6 +51,7 @@ export function Confirm({ recipient }: { recipient: RecipientInfo }) {
           settleMs: res.settleMs,
           signature: res.signature,
           escrow: !!res.escrowId,
+          toAddress: recipient.toAddress,
         },
       },
     ]);
@@ -65,7 +66,7 @@ export function Confirm({ recipient }: { recipient: RecipientInfo }) {
     setPhase({ kind: "sending" });
     try {
       const res = await api.send({
-        to: recipient.handle,
+        ...(recipient.toAddress ? { toAddress: recipient.toAddress } : { to: recipient.handle }),
         amountCents: cents,
         note: draft.note || undefined,
         intentId: intentId.current,
@@ -103,6 +104,19 @@ export function Confirm({ recipient }: { recipient: RecipientInfo }) {
 
   return (
     <Screen label="Confirm payment" className="confirm">
+      {recipient.toAddress ? (
+        <Card className="confirm__card">
+          <Avatar name="" size={64} wallet />
+          <span className="headline">Wallet address</span>
+          <span className="address-full" aria-label={`Full address ${recipient.toAddress}`}>
+            {addressLines(recipient.toAddress).map((line, i) => (
+              <span key={i} className="address-full__line">
+                {line.join(" ")}
+              </span>
+            ))}
+          </span>
+        </Card>
+      ) : (
       <Card className="confirm__card">
         <Avatar
           name={recipient.displayName ?? recipient.handle}
@@ -117,6 +131,7 @@ export function Confirm({ recipient }: { recipient: RecipientInfo }) {
         )}
         {recipient.address && <Fingerprint address={recipient.address} />}
       </Card>
+      )}
 
       <div className="confirm__amount">
         <span className="amount-xl tabular" aria-label={amountAria(cents)}>

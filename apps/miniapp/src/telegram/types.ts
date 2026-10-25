@@ -72,6 +72,9 @@ export interface WebApp {
   offEvent(event: "themeChanged", cb: () => void): void;
   openLink(url: string): void;
   openTelegramLink(url: string): void;
+  /** Return true from the callback to close the scanner. */
+  showScanQrPopup(params: { text?: string }, callback: (data: string) => boolean | void): void;
+  closeScanQrPopup(): void;
 }
 
 declare global {

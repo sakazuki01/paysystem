@@ -196,6 +196,12 @@ export function installDevShim(opts: { scheme?: "light" | "dark"; startParam?: s
     openTelegramLink(url) {
       window.open(url, "_blank", "noopener");
     },
+    // No camera outside Telegram: ask for the scanned text instead.
+    showScanQrPopup(params, callback) {
+      const data = window.prompt(params.text ?? "Scan a QR code (dev: paste its text)");
+      if (data) callback(data);
+    },
+    closeScanQrPopup() {},
   };
 
   function renderThemeToggle() {

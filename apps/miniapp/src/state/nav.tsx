@@ -7,6 +7,8 @@ export interface SuccessInfo {
   counterparty: string;
   settleMs: number;
   signature: string;
+  /** Paid to a raw wallet address (headline shows its fingerprint). */
+  toAddress?: string;
   /** Sent to someone not on Pay System yet (shows the 7-day claim caption). */
   escrow?: boolean;
   /** Where Done goes. Default: home. */

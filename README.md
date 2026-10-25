@@ -66,6 +66,10 @@ Skeleton: remove `_` → `rn`→`m` → map `0→o 1→l i→l 5→s 3→e 8→b
 - [ ] **Gate `initialize` to the program's upgrade authority** (check `program_data.upgrade_authority_address`). Today the first caller becomes the authority. Fine on localnet, front-runnable on devnet.
 - [ ] Replace the placeholder program id in `declare_id!` / `Anchor.toml` with a real keypair (never committed).
 
+## Send to address
+
+S4 accepts a username, an @handle or a Solana wallet address (typed, pasted with **Paste**, or scanned with **Scan**, which takes a raw address or a `solana:<address>?…` URI). `packages/shared` → `parseRecipient` / `validateAddress` decide which it is: base58, exactly 32 bytes, and **on** the ed25519 curve (off-curve program addresses can't receive). An address owned by a registered user shows as that user ("Wallet of @alex"); your own wallet is rejected. S6 shows the full address in groups of 4 over 3 lines plus one warning banner. `PayApi.send({ toAddress })` pays it directly (no escrow). Mock: `SEED_WALLETS.alex` resolves to @alex; any other valid key is a stranger's wallet.
+
 ## Mini App
 
 ```bash

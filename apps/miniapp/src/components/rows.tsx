@@ -20,12 +20,15 @@ export function UserRow({
   avatar,
   onClick,
   disabled,
+  captionMono = false,
 }: {
   title: string;
   caption: string;
   avatar: ReactNode;
   onClick(): void;
   disabled?: boolean;
+  /** Caption is an address fingerprint (--type-mono). */
+  captionMono?: boolean;
 }) {
   return (
     <button
@@ -41,7 +44,7 @@ export function UserRow({
       {avatar}
       <span className="row__main">
         <span className="row__title">{title}</span>
-        <span className="row__caption">{caption}</span>
+        <span className={`row__caption ${captionMono ? "mono" : ""}`}>{caption}</span>
       </span>
     </button>
   );
@@ -61,6 +64,7 @@ export function UserSummaryRow({ user, onClick, disabled }: { user: UserSummary;
 
 export function ActivityRow({ item, onClick }: { item: Activity; onClick(): void }) {
   const out = item.direction === "out";
+  const label = item.toAddress ? item.counterparty : `@${item.counterparty}`;
   return (
     <button
       type="button"
@@ -69,11 +73,15 @@ export function ActivityRow({ item, onClick }: { item: Activity; onClick(): void
         haptic.tap();
         onClick();
       }}
-      aria-label={`${out ? "Sent" : "Received"} ${amountAria(item.amountCents)} ${out ? "to" : "from"} @${item.counterparty}, ${item.status}, ${shortTime(item.createdAt)}`}
+      aria-label={`${out ? "Sent" : "Received"} ${amountAria(item.amountCents)} ${out ? "to" : "from"} ${label}, ${item.status}, ${shortTime(item.createdAt)}`}
     >
-      <Avatar name={item.counterpartyName ?? item.counterparty} link={!!item.escrowId && out && item.status !== "sent"} />
+      <Avatar
+        name={item.counterpartyName ?? item.counterparty}
+        link={!!item.escrowId && out && item.status !== "sent"}
+        wallet={!!item.toAddress}
+      />
       <span className="row__main">
-        <span className="row__title">@{item.counterparty}</span>
+        <span className="row__title">{label}</span>
         <span className="row__caption row__caption--meta">
           {shortTime(item.createdAt)}
           <StatusPill status={item.status} />

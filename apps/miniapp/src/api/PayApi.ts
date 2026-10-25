@@ -38,6 +38,8 @@ export interface RecipientInfo {
   fingerprint?: string;
   /** Full wallet address (copied by the Fingerprint control). */
   address?: string;
+  /** Set when paying a raw wallet address that isn't a Pay System user (LOGIC §7.1b). */
+  toAddress?: string;
 }
 
 export type ActivityStatus = "sent" | "received" | "pending" | "refundable" | "refunded" | "failed";
@@ -54,6 +56,8 @@ export interface Activity {
   escrowId?: string;
   expiresAt?: number;
   signature?: string;
+  /** Paid to a raw wallet address; `counterparty` then holds its fingerprint. */
+  toAddress?: string;
 }
 
 export interface Escrow {
@@ -69,7 +73,10 @@ export interface Escrow {
 }
 
 export interface SendInput {
-  to: string;
+  /** Username or Telegram handle. Exactly one of `to` / `toAddress`. */
+  to?: string;
+  /** A raw wallet address (validated with validateAddress first). */
+  toAddress?: string;
   amountCents: number;
   note?: string;
   /** 16 random bytes (hex), fixed for one payment across retries. A repeat returns the original receipt. */
@@ -123,6 +130,8 @@ export interface PayApi {
   getRecentRecipients(): Promise<UserSummary[]>;
   searchUsers(query: string): Promise<UserSummary[]>;
   getRecipientInfo(handle: string): Promise<RecipientInfo>;
+  /** Which Pay System user owns this wallet, if any. */
+  resolveAddress(address: string): Promise<{ username?: string }>;
   send(input: SendInput): Promise<SendResult>;
   /** Has the payment with this intent landed? (Receipt PDA lookup on the real chain.) */
   getPaymentStatus(intentId: string): Promise<PaymentStatus>;

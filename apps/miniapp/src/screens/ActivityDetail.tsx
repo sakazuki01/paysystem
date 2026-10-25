@@ -78,10 +78,15 @@ export function ActivityDetail({ id }: { id: string }) {
       </div>
 
       <div className="row row--static">
-        <Avatar name={a.counterpartyName ?? a.counterparty} link={!!a.escrowId && out && a.status !== "sent"} />
+        <Avatar
+          name={a.counterpartyName ?? a.counterparty}
+          link={!!a.escrowId && out && a.status !== "sent"}
+          wallet={!!a.toAddress}
+        />
         <span className="row__main">
-          <span className="row__title">@{a.counterparty}</span>
+          <span className={`row__title ${a.toAddress ? "mono" : ""}`}>{a.toAddress ? a.counterparty : `@${a.counterparty}`}</span>
           {a.counterpartyName && <span className="row__caption">{a.counterpartyName}</span>}
+          {a.toAddress && <span className="row__caption">Wallet address</span>}
         </span>
       </div>
 
