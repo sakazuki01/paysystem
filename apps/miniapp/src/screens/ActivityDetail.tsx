@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSingleFlight } from "../lib/useSingleFlight";
 import { Check, ExternalLink } from "lucide-react";
 import { Screen } from "../components/Screen";
 import { Avatar, Banner, Skeleton, StatusPill } from "../components/primitives";
@@ -18,7 +19,7 @@ export function ActivityDetail({ id }: { id: string }) {
   const a = item.data;
   const isEscrow = !!a?.escrowId && (a.status === "pending" || a.status === "refundable");
 
-  async function refund() {
+  const refund = useSingleFlight(async () => {
     if (!a?.escrowId) return;
     setRefunding(true);
     setError(null);
@@ -37,7 +38,7 @@ export function ActivityDetail({ id }: { id: string }) {
       setRefunding(false);
       setError(errorCopy(e));
     }
-  }
+  });
 
   useMainButton({
     text: refunding ? "Refunding…" : error ? "Try again" : "Refund",

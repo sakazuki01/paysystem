@@ -72,6 +72,8 @@ export interface SendInput {
   to: string;
   amountCents: number;
   note?: string;
+  /** 16 random bytes (hex), fixed for one payment across retries. A repeat returns the original receipt. */
+  intentId: string;
 }
 
 export interface TxResult {
@@ -84,6 +86,11 @@ export interface SendResult extends TxResult {
   activityId: string;
   escrowId?: string;
 }
+
+export type PaymentStatus =
+  | { status: "landed"; receipt: SendResult }
+  | { status: "notLanded" }
+  | { status: "unknown" };
 
 export type PayErrorCode =
   | "network"
@@ -117,6 +124,8 @@ export interface PayApi {
   searchUsers(query: string): Promise<UserSummary[]>;
   getRecipientInfo(handle: string): Promise<RecipientInfo>;
   send(input: SendInput): Promise<SendResult>;
+  /** Has the payment with this intent landed? (Receipt PDA lookup on the real chain.) */
+  getPaymentStatus(intentId: string): Promise<PaymentStatus>;
   /** Unclaimed escrows addressed to my Telegram handle. */
   getIncomingEscrows(): Promise<Escrow[]>;
   getEscrow(id: string): Promise<Escrow | null>;

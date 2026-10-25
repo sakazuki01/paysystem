@@ -84,6 +84,7 @@ export function Banner({
   action,
   onClick,
   label,
+  icon,
 }: {
   variant: BannerVariant;
   children: ReactNode;
@@ -93,11 +94,13 @@ export function Banner({
   onClick?: () => void;
   /** Accessible name when the whole banner is a button. */
   label?: string;
+  /** Replaces the variant's icon (e.g. a spinner while checking). */
+  icon?: ReactNode;
 }) {
   const Icon = BANNER_ICONS[variant];
   const body = (
     <>
-      <Icon className="banner__icon" size={20} strokeWidth={2} aria-hidden="true" />
+      {icon ?? <Icon className="banner__icon" size={20} strokeWidth={2} aria-hidden="true" />}
       <span className="banner__text">{children}</span>
       {action && (
         <button type="button" className="banner__action" onClick={action.onClick}>

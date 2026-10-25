@@ -2,6 +2,8 @@ import { PayApiError } from "../api/PayApi";
 
 // Spec §6.2. Never "transaction failed": say what happened and what to do next.
 export const NETWORK_ERROR = "Couldn't reach Solana. Your money hasn't moved — try again.";
+/** Only after we KNOW a payment didn't land (receipt absent, blockhash expired). Spec §6.2. */
+export const NOT_LANDED = "Payment didn't go through. Your money hasn't moved — try again.";
 
 export function errorCopy(e: unknown, ctx: { username?: string | null } = {}): string {
   if (e instanceof PayApiError) {

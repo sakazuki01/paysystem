@@ -1,57 +1,103 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
-import type { RecipientInfo } from "../api/PayApi";
+import { PayApiError, type RecipientInfo, type SendResult } from "../api/PayApi";
 import { Screen } from "../components/Screen";
-import { Avatar, Banner, Card, Fingerprint } from "../components/primitives";
+import { Avatar, Banner, Card, Fingerprint, Spinner } from "../components/primitives";
 import { rawToCents } from "../lib/amount";
 import { selectSafetyBanners } from "../lib/banners";
-import { errorCopy } from "../lib/errors";
+import { errorCopy, NOT_LANDED } from "../lib/errors";
 import { amountAria, formatUsd, sinceCaption } from "../lib/format";
+import { waitForPayment } from "../lib/paymentStatus";
+import { newIntentId, useSingleFlight } from "../lib/useSingleFlight";
 import { useApp } from "../state/app";
 import { useNav } from "../state/nav";
 import { haptic, useMainButton } from "../telegram/telegram";
 
-/** S6 — Confirm: the safety screen. */
+type Phase =
+  | { kind: "idle" }
+  | { kind: "sending" }
+  | { kind: "checking" } // timed out: we don't know yet whether it landed
+  | { kind: "failed"; message: string };
+
+/** S6 — Confirm: the safety screen. Every send is exactly-once (LOGIC §7.5). */
 export function Confirm({ recipient }: { recipient: RecipientInfo }) {
   const { api, me, draft, setDraft, invalidate } = useApp();
   const nav = useNav();
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  // One intent per visit to S6: kept across Try again, dropped when the screen unmounts.
+  const intentId = useRef(newIntentId());
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const cents = rawToCents(draft.raw);
   const banners = selectSafetyBanners(recipient);
 
-  async function send() {
-    setSending(true);
-    setError(null);
-    try {
-      const res = await api.send({ to: recipient.handle, amountCents: cents, note: draft.note || undefined });
-      setDraft({ raw: "", note: "" });
-      invalidate();
-      nav.reset([
-        { name: "home" },
-        {
-          name: "success",
-          info: {
-            kind: "sent",
-            amountCents: cents,
-            counterparty: recipient.handle,
-            settleMs: res.settleMs,
-            signature: res.signature,
-            escrow: !!res.escrowId,
-          },
+  function succeed(res: SendResult) {
+    setDraft({ raw: "", note: "" });
+    invalidate();
+    nav.reset([
+      { name: "home" },
+      {
+        name: "success",
+        info: {
+          kind: "sent",
+          amountCents: cents,
+          counterparty: recipient.handle,
+          settleMs: res.settleMs,
+          signature: res.signature,
+          escrow: !!res.escrowId,
         },
-      ]);
-    } catch (e) {
-      haptic.error();
-      setError(errorCopy(e, { username: me.username }));
-      setSending(false);
-    }
+      },
+    ]);
   }
 
+  function fail(message: string) {
+    haptic.error();
+    setPhase({ kind: "failed", message });
+  }
+
+  const send = useSingleFlight(async () => {
+    setPhase({ kind: "sending" });
+    try {
+      const res = await api.send({
+        to: recipient.handle,
+        amountCents: cents,
+        note: draft.note || undefined,
+        intentId: intentId.current,
+      });
+      if (mounted.current) succeed(res);
+    } catch (e) {
+      if (!mounted.current) return;
+      if (!(e instanceof PayApiError && e.code === "network")) {
+        fail(errorCopy(e, { username: me.username }));
+        return;
+      }
+      // A timeout is not a failure: the payment may have landed. Never re-send blindly.
+      setPhase({ kind: "checking" });
+      const status = await waitForPayment(() => api.getPaymentStatus(intentId.current));
+      if (!mounted.current) return;
+      if (status.status === "landed") succeed(status.receipt);
+      else fail(NOT_LANDED);
+    }
+  });
+
+  const busy = phase.kind === "sending" || phase.kind === "checking";
   useMainButton({
-    text: sending ? "Sending…" : error ? "Try again" : `Send ${formatUsd(cents)}`,
-    progress: sending,
-    disabled: cents <= 0,
+    text:
+      phase.kind === "sending"
+        ? "Sending…"
+        : phase.kind === "checking"
+          ? "Checking…"
+          : phase.kind === "failed"
+            ? "Try again"
+            : `Send ${formatUsd(cents)}`,
+    progress: busy,
+    disabled: cents <= 0 || busy,
     onClick: send,
   });
 
@@ -79,9 +125,13 @@ export function Confirm({ recipient }: { recipient: RecipientInfo }) {
         {draft.note && <span className="body caption--muted">{draft.note}</span>}
       </div>
 
-      {/* Max 2 banners, always: a failure replaces the safety banners until Try again. */}
-      {error ? (
-        <Banner variant="danger">{error}</Banner>
+      {/* Max 2 banners, always: a failure or the status check replaces the safety banners. */}
+      {phase.kind === "failed" ? (
+        <Banner variant="danger">{phase.message}</Banner>
+      ) : phase.kind === "checking" ? (
+        <Banner variant="info" icon={<Spinner size={18} />}>
+          Checking your payment…
+        </Banner>
       ) : (
         banners.map((b) => (
           <Banner key={b.id} variant={b.variant}>
@@ -99,7 +149,7 @@ export function Confirm({ recipient }: { recipient: RecipientInfo }) {
       </div>
 
       <p className="visually-hidden" aria-live="polite">
-        {sending ? "Sending…" : ""}
+        {phase.kind === "sending" ? "Sending…" : ""}
       </p>
     </Screen>
   );

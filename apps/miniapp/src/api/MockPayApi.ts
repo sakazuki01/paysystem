@@ -6,6 +6,7 @@ import {
   type Me,
   type PayApi,
   type PayErrorCode,
+  type PaymentStatus,
   type RecipientInfo,
   type SendInput,
   type SendResult,
@@ -16,6 +17,7 @@ import {
 import { fingerprint } from "../lib/format";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+export type FailMode = "beforeLand" | "afterLand";
 export const ESCROW_TTL_MS = 7 * DAY_MS;
 
 interface Account {
@@ -36,6 +38,8 @@ export interface MockOptions {
   latencyMs?: number;
   /** Telegram handle of the signed-in user. Default "sakz". */
   me?: string;
+  /** getPaymentStatus answers "unknown" this many times per intent before the truth (simulates RPC lag). */
+  statusUnknownPolls?: number;
   now?: () => number;
 }
 
@@ -60,18 +64,26 @@ export class MockPayApi implements PayApi {
   private latency: number;
   private meHandle: string;
   private now: () => number;
-  private pendingFailure: PayErrorCode | null = null;
+  private pendingFailure: { code: PayErrorCode; mode: FailMode } | null = null;
+  /** `${sender}:${intentId}` -> receipt. The mock's stand-in for Receipt PDAs. */
+  private receipts = new Map<string, SendResult>();
+  private statusPolls = new Map<string, number>();
+  private statusUnknownPolls: number;
 
   constructor(opts: MockOptions = {}) {
     this.latency = opts.latencyMs ?? 900;
     this.meHandle = opts.me ?? "sakz";
     this.now = opts.now ?? Date.now;
+    this.statusUnknownPolls = opts.statusUnknownPolls ?? 0;
     this.seed();
   }
 
-  /** Make the next write call fail with `code` (dev + tests). */
-  failNext(code: PayErrorCode) {
-    this.pendingFailure = code;
+  /**
+   * Make the next write fail with `code` (dev + tests). For `send`, "afterLand" moves the money
+   * and writes the receipt first, then throws: the dangerous timeout case.
+   */
+  failNext(code: PayErrorCode, mode: FailMode = "beforeLand") {
+    this.pendingFailure = { code, mode };
   }
 
   // ---------- reads ----------
@@ -197,8 +209,33 @@ export class MockPayApi implements PayApi {
     return this.getMe();
   }
 
-  async send({ to, amountCents, note }: SendInput): Promise<SendResult> {
-    const settleMs = await this.write();
+  async getPaymentStatus(intentId: string): Promise<PaymentStatus> {
+    await this.read();
+    const key = this.receiptKey(intentId);
+    const polls = this.statusPolls.get(key) ?? 0;
+    if (polls < this.statusUnknownPolls) {
+      this.statusPolls.set(key, polls + 1);
+      return { status: "unknown" };
+    }
+    const receipt = this.receipts.get(key);
+    return receipt ? { status: "landed", receipt } : { status: "notLanded" };
+  }
+
+  async send(input: SendInput): Promise<SendResult> {
+    const settleMs = await this.settle();
+    const failure = this.takeFailure();
+    if (failure && failure.mode === "beforeLand") throw new PayApiError(failure.code);
+    // Exactly-once: the same intent can never pay twice (Receipt PDA `init` on the real chain).
+    const key = this.receiptKey(input.intentId);
+    const existing = this.receipts.get(key);
+    if (existing) return existing;
+    const receipt = this.transfer(input, settleMs);
+    this.receipts.set(key, receipt);
+    if (failure) throw new PayApiError(failure.code, "Timed out after the payment landed");
+    return receipt;
+  }
+
+  private transfer({ to, amountCents, note }: SendInput, settleMs: number): SendResult {
     const me = this.me();
     const h = handleOf(to);
     if (!(amountCents > 0)) throw new PayApiError("insufficient_funds", "Amount must be positive");
@@ -284,14 +321,27 @@ export class MockPayApi implements PayApi {
 
   /** Simulates a confirmed transaction; returns the "measured" settle time. */
   private async write(): Promise<number> {
+    const settleMs = await this.settle();
+    const failure = this.takeFailure();
+    if (failure) throw new PayApiError(failure.code);
+    return settleMs;
+  }
+
+  private async settle(): Promise<number> {
     await sleep(this.latency);
     this.assertOnline();
-    if (this.pendingFailure) {
-      const code = this.pendingFailure;
-      this.pendingFailure = null;
-      throw new PayApiError(code);
-    }
     return 700 + Math.round(Math.random() * 500);
+  }
+
+  private takeFailure() {
+    const f = this.pendingFailure;
+    this.pendingFailure = null;
+    return f;
+  }
+
+  private receiptKey(intentId: string) {
+    const me = this.me();
+    return `${me.username ?? me.telegramHandle}:${intentId}`;
   }
 
   private assertOnline() {

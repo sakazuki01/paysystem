@@ -122,6 +122,33 @@ Navigation: Home is the root. Everything else pushes on top and uses Telegram Ba
 - Login happens automatically through Telegram initData plus the embedded wallet. Show a skeleton + "Setting up your wallet…" (≤ 2 s target).
 - MainButton: **Get started** → S2.
 
+### S1b — Sign in (v1.3; web, or when not signed in)
+- Inside Telegram, the user signs in automatically with Telegram and never sees this screen. S1 → S2 as before.
+- Outside Telegram (the web version), after the S1 logo and title: a stack of full-width 52 px buttons on `--bg-secondary`, `--r-md`, each with a 20 px icon on the left and a centred label:
+  1. **Continue with Telegram**
+  2. **Continue with Google**
+  3. **Continue with Apple**
+  4. **Continue with email** → S1c
+  5. Divider "or"
+  6. **Connect a wallet** → a bottom sheet listing Phantom, Solflare, Backpack and WalletConnect (detected wallets first, with an "Installed" pill)
+- Under the stack, a text link (`--brand-text`): "Import an existing wallet" → S1d.
+- Footer caption: "By continuing you agree to the Terms and Privacy Policy" (links).
+- Errors: inline danger-text under the stack, e.g. "Google sign-in was cancelled" or "Couldn't connect to Phantom — is it unlocked?".
+
+### S1c — Email code
+- Email field → MainButton **Send code** → 6 single-digit boxes (auto-advance, paste fills all six, numeric keyboard) → auto-submit on the 6th digit.
+- "Resend code" link, disabled with a 30 s countdown. Wrong code: shake + "That code isn't right". Expired: "That code expired — we sent a new one".
+
+### S1d — Import wallet (web only)
+- A full-screen warning first: shield icon, title "Only import a wallet you own", body "Pay System will never ask for your recovery phrase in a chat, DM or bot. Anyone who does is trying to steal your money." Checkbox "I understand". MainButton **Continue** (disabled until checked).
+- Then a segmented control: Recovery phrase | Private key. Phrase: a 12/24-word grid with paste support and a word-count validator. Key: a masked field with a show toggle.
+- MainButton **Import**. Success → S2 (or Home if the wallet already has a username).
+
+### S17 — Settings → Sign-in methods (v1.3)
+- Reached from the avatar on Home → Profile → "Sign-in methods".
+- List of methods with a status: "Connected · alex@mail.com" or a **Link** button. At least one method must remain; the last one shows no Unlink option.
+- Linking a method that already belongs to ANOTHER account: "That Google account is already used by @alex2. Sign in with it to manage that account instead."
+
 ### S2 — Pick your username
 - Title "Pick your username". Caption "This is how friends pay you."
 - UsernameInput is prefilled with the Telegram handle if valid and available.

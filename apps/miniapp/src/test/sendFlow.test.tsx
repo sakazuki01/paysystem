@@ -101,7 +101,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     api.failNext("network");
     await user.click(mainButton());
     expect(
-      await screen.findByText("Couldn't reach Solana. Your money hasn't moved — try again."),
+      await screen.findByText("Payment didn't go through. Your money hasn't moved — try again."),
     ).toBeInTheDocument();
     expect(mainButton()).toHaveTextContent("Try again");
     expect(screen.getByText("$7.00")).toBeInTheDocument();
@@ -123,13 +123,13 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     api.failNext("network");
     await user.click(mainButton());
     expect(
-      await screen.findByText("Couldn't reach Solana. Your money hasn't moved — try again."),
+      await screen.findByText("Payment didn't go through. Your money hasn't moved — try again."),
     ).toBeInTheDocument();
     expect(screen.queryByText("First time paying @alex2")).not.toBeInTheDocument();
     expect(screen.queryByText("This account was created today")).not.toBeInTheDocument();
 
     await user.click(mainButton()); // Try again: failure clears, safety banners return while sending
-    expect(screen.queryByText(/Couldn't reach Solana/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Payment didn't go through/)).not.toBeInTheDocument();
     expect(screen.getByText("First time paying @alex2")).toBeInTheDocument();
     expect(await screen.findByText("Sent $1.00 to @alex2")).toBeInTheDocument();
   });

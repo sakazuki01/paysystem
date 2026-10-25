@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSingleFlight } from "../lib/useSingleFlight";
 import { Clock, UserX } from "lucide-react";
 import { PayApiError } from "../api/PayApi";
 import { Screen } from "../components/Screen";
@@ -21,15 +22,15 @@ export function Claim({ id }: { id: string }) {
   const signedInAs = me.username ?? me.telegramHandle;
   const variant = !e
     ? "none"
-    : e.status === "refunded" || (e.status === "pending" && Date.now() >= e.expiresAt)
-      ? "expired"
-      : e.status !== "pending"
-        ? "none"
+    : e.status !== "pending"
+      ? "none" // claimed or refunded: the link is spent
+      : Date.now() >= e.expiresAt
+        ? "expired"
         : e.recipientHandle !== me.telegramHandle
           ? "wrong-user"
           : "claimable";
 
-  async function claim() {
+  const claim = useSingleFlight(async () => {
     if (!e) return;
     setClaiming(true);
     setError(null);
@@ -56,7 +57,7 @@ export function Claim({ id }: { id: string }) {
       if (err instanceof PayApiError && err.code.startsWith("escrow_")) escrow.reload();
       else setError(errorCopy(err));
     }
-  }
+  });
 
   useMainButton({
     text: claiming ? "Claiming…" : error ? "Try again" : e ? `Claim ${formatUsd(e.amountCents)}` : "Claim",

@@ -48,7 +48,7 @@ describe("checkUsername uses packages/shared rules", () => {
 describe("send", () => {
   it("pays a registered user, debits balance and returns a realistic settle time", async () => {
     const api = fast();
-    const res = await api.send({ to: "alex", amountCents: 1000, note: "pizza" });
+    const res = await api.send({ to: "alex", amountCents: 1000, note: "pizza", intentId: "i1" });
     expect(res.settleMs).toBeGreaterThanOrEqual(700);
     expect(res.settleMs).toBeLessThanOrEqual(1200);
     expect(res.escrowId).toBeUndefined();
@@ -58,14 +58,14 @@ describe("send", () => {
 
   it("sends to an unregistered handle via escrow", async () => {
     const api = fast();
-    const res = await api.send({ to: "newfriend", amountCents: 500 });
+    const res = await api.send({ to: "newfriend", amountCents: 500, intentId: "i2" });
     expect(res.escrowId).toBeDefined();
     const escrow = await api.getEscrow(res.escrowId!);
     expect(escrow).toMatchObject({ recipientHandle: "newfriend", amountCents: 500, status: "pending" });
   });
 
   it("refuses more than the balance", async () => {
-    await expect(fast().send({ to: "alex", amountCents: 999_999 })).rejects.toMatchObject({
+    await expect(fast().send({ to: "alex", amountCents: 999_999, intentId: "i3" })).rejects.toMatchObject({
       code: "insufficient_funds",
     });
   });
@@ -73,8 +73,46 @@ describe("send", () => {
   it("can be told to fail with a network error, without moving money", async () => {
     const api = fast();
     api.failNext("network");
-    await expect(api.send({ to: "alex", amountCents: 100 })).rejects.toBeInstanceOf(PayApiError);
+    await expect(api.send({ to: "alex", amountCents: 100, intentId: "i4" })).rejects.toBeInstanceOf(PayApiError);
     expect(await api.getBalance()).toBe(12450);
+  });
+});
+
+describe("payment intents (exactly-once)", () => {
+  const intent = "0123456789abcdef0123456789abcdef";
+
+  it("a duplicate send with the same intent returns the original receipt without debiting again", async () => {
+    const api = fast();
+    const first = await api.send({ to: "alex", amountCents: 1000, intentId: intent });
+    const again = await api.send({ to: "alex", amountCents: 1000, intentId: intent });
+    expect(again).toEqual(first);
+    expect(await api.getBalance()).toBe(11450);
+  });
+
+  it("afterLand: debits, then throws a timeout; status says landed with the receipt", async () => {
+    const api = fast();
+    api.failNext("network", "afterLand");
+    await expect(api.send({ to: "alex", amountCents: 1000, intentId: intent })).rejects.toMatchObject({ code: "network" });
+    expect(await api.getBalance()).toBe(11450);
+    const status = await api.getPaymentStatus(intent);
+    expect(status.status).toBe("landed");
+  });
+
+  it("beforeLand: nothing moves; status says notLanded", async () => {
+    const api = fast();
+    api.failNext("network", "beforeLand");
+    await expect(api.send({ to: "alex", amountCents: 1000, intentId: intent })).rejects.toMatchObject({ code: "network" });
+    expect(await api.getBalance()).toBe(12450);
+    expect((await api.getPaymentStatus(intent)).status).toBe("notLanded");
+  });
+
+  it("reports unknown for the configured number of polls first", async () => {
+    const api = new MockPayApi({ latencyMs: 0, statusUnknownPolls: 2 });
+    api.failNext("network", "afterLand");
+    await api.send({ to: "alex", amountCents: 100, intentId: intent }).catch(() => {});
+    expect((await api.getPaymentStatus(intent)).status).toBe("unknown");
+    expect((await api.getPaymentStatus(intent)).status).toBe("unknown");
+    expect((await api.getPaymentStatus(intent)).status).toBe("landed");
   });
 });
 

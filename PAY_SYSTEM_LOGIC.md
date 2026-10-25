@@ -167,6 +167,26 @@ User types name
 - Telegram login is verified by the backend: the Mini App `initData` is checked with an HMAC using the bot token.
 - **Trust assumption:** the backend vouches that a wallet belongs to a Telegram user. That's acceptable for the hackathon, so state it openly in the pitch.
 
+## 6b. Sign-up and sign-in methods (v1.3)
+
+### Methods
+| Method | Wallet | Where it's offered |
+|---|---|---|
+| Telegram | embedded (created for you) | Inside Telegram: automatic, no screen. Web: "Continue with Telegram" |
+| Email (6-digit code) | embedded | everywhere |
+| Google | embedded | web; inside Telegram it opens the system browser (Google blocks sign-in inside embedded webviews) |
+| Apple | embedded | web; inside Telegram it opens the system browser |
+| Connect a wallet (Phantom, Solflare, Backpack, WalletConnect) | the user's own wallet | everywhere |
+| Import a wallet (private key or recovery phrase) | imported into the embedded wallet | **web only**, behind a warning screen. Never inside Telegram chats, where fake "import your wallet" bots are the #1 scam |
+
+**Provider:** one auth provider that supports all of these plus embedded Solana wallets and key import (Privy fits; Web3Auth is the fallback). Keys live in the provider's secure infrastructure, never on our servers. The hackathon build runs on a mocked `AuthApi`; the real provider needs a dashboard login from the user to get an app ID.
+
+### Account model
+- **One account = one wallet** (embedded or connected). That wallet is the `owner` on the UsernameRecord.
+- An account can **link several sign-in methods** (Telegram + email + Google…), so the same person never ends up with two accounts. Linking happens in Settings → "Sign-in methods".
+- A connected external wallet signs its own transactions (the app still pays the fees). An embedded wallet signs silently.
+- **Program change:** `register_username` takes `telegram_id: Option<u64>`. If it's None (an email, Google, Apple or wallet user), no TelegramIndex is created. One-name-per-account for those users is enforced by the backend (it only co-signs one registration per account), and on-chain the owner wallet can't hold two names: add an `OwnerIndex` PDA `[b"owner", owner]`.
+
 ## 7. Payment flows
 
 ### 7.1 Send to a registered username
