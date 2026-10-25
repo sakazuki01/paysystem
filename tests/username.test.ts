@@ -34,12 +34,14 @@ function tgSeed(telegramId: bigint): Buffer {
   return b;
 }
 
-function pdas(name: string, skeleton: string, telegramId: bigint) {
+function pdas(name: string, skeleton: string, telegramId: bigint | null, owner?: PublicKey) {
   return {
     config: pda(seed("config")),
     usernameRecord: pda(seed("username"), seed(name)),
     skeletonRecord: pda(seed("skeleton"), seed(skeleton)),
-    telegramIndex: pda(seed("tg"), tgSeed(telegramId)),
+    // Optional account: null when there's no Telegram ID (email / Google / wallet sign-ups).
+    telegramIndex: telegramId === null ? null : pda(seed("tg"), tgSeed(telegramId)),
+    ...(owner ? { ownerIndex: pda(seed("owner"), owner.toBuffer()) } : {}),
   };
 }
 
@@ -50,14 +52,14 @@ const freshTelegramId = () => nextTelegramId++;
 function registerRaw(
   name: string,
   skeleton: string,
-  telegramId: bigint,
+  telegramId: bigint | null,
   owner: Keypair = web3.Keypair.generate(),
   signer: Keypair = authority,
 ) {
   return program.methods
-    .registerUsername(name, skeleton, new BN(telegramId.toString()))
+    .registerUsername(name, skeleton, telegramId === null ? null : new BN(telegramId.toString()))
     .accountsPartial({
-      ...pdas(name, skeleton, telegramId),
+      ...pdas(name, skeleton, telegramId, owner.publicKey),
       authority: signer.publicKey,
       owner: owner.publicKey,
     })
@@ -66,19 +68,20 @@ function registerRaw(
 }
 
 /** What a client (backend / Mini App) would tell the user before sending. */
-async function diagnose(input: string, telegramId: bigint) {
+async function diagnose(input: string, telegramId: bigint | null, owner?: PublicKey) {
   const v = validateUsername(input);
   if (!v.ok) return v.error;
-  const p = pdas(v.normalized, v.skeleton, telegramId);
+  const p = pdas(v.normalized, v.skeleton, telegramId, owner);
   const exists = async (k: PublicKey) => (await provider.connection.getAccountInfo(k)) !== null;
   if (await exists(p.usernameRecord)) return "UsernameTaken";
   if (await exists(p.skeletonRecord)) return "UsernameTooSimilar";
-  if (await exists(p.telegramIndex)) return "TelegramIdAlreadyRegistered";
+  if (p.telegramIndex && (await exists(p.telegramIndex))) return "TelegramIdAlreadyRegistered";
+  if (p.ownerIndex && (await exists(p.ownerIndex))) return "WalletAlreadyHasName";
   return null;
 }
 
 /** Client path: normalize + compute skeleton with packages/shared, then send. */
-function register(input: string, telegramId: bigint, owner?: Keypair) {
+function register(input: string, telegramId: bigint | null, owner?: Keypair) {
   const v = validateUsername(input);
   if (!v.ok) throw new Error(v.error);
   return registerRaw(v.normalized, v.skeleton, telegramId, owner);
@@ -139,8 +142,11 @@ test("1. register alex creates all three PDAs with correct fields", async () => 
   const skeletonRecord = await program.account.skeletonRecord.fetch(p.skeletonRecord);
   assert.ok(skeletonRecord.username.equals(p.usernameRecord));
 
-  const telegramIndex = await program.account.telegramIndex.fetch(p.telegramIndex);
+  const telegramIndex = await program.account.telegramIndex.fetch(p.telegramIndex!);
   assert.ok(telegramIndex.username.equals(p.usernameRecord));
+
+  const ownerIndex = await program.account.ownerIndex.fetch(pda(seed("owner"), alexOwner.publicKey.toBuffer()));
+  assert.ok(ownerIndex.username.equals(p.usernameRecord));
 });
 
 test("2. another wallet + Telegram ID cannot take alex", async () => {
@@ -202,4 +208,53 @@ test("8. two different valid names both succeed", async () => {
   // alex (test 1) is still intact alongside it
   const alex = await program.account.usernameRecord.fetch(pdas("alex", "alex", 0n).usernameRecord);
   assert.equal(alex.name, "alex");
+});
+
+// ---------- Brief 5A: optional Telegram ID + one name per wallet ----------
+
+test("9. registering without a Telegram ID works and creates no TelegramIndex", async () => {
+  const owner = web3.Keypair.generate();
+  await register("mailuser", null, owner);
+  const record = await program.account.usernameRecord.fetch(pdas("mailuser", "mallusel", null).usernameRecord);
+  assert.equal(record.name, "mailuser");
+  assert.equal(record.telegramId, null);
+  const ownerIndex = pda(seed("owner"), owner.publicKey.toBuffer());
+  assert.ok((await program.account.ownerIndex.fetch(ownerIndex)).username.equals(pdas("mailuser", "", null).usernameRecord));
+});
+
+test("10. the same wallet can't register a second name (OwnerIndex)", async () => {
+  const owner = web3.Keypair.generate();
+  await register("firstname", null, owner);
+  assert.equal(await diagnose("secondname", null, owner.publicKey), "WalletAlreadyHasName");
+  await expectFail(register("secondname", null, owner), ALREADY_IN_USE);
+  // ...even when the second attempt brings a fresh Telegram ID
+  await expectFail(register("thirdname", freshTelegramId(), owner), ALREADY_IN_USE);
+});
+
+test("11. a Telegram user is still blocked from a second name (TelegramIndex), even from a new wallet", async () => {
+  const tg = freshTelegramId();
+  await register("tguser", tg);
+  assert.equal(await diagnose("tguser_two", tg), "TelegramIdAlreadyRegistered");
+  await expectFail(register("tguser_two", tg, web3.Keypair.generate()), ALREADY_IN_USE);
+});
+
+test("12. two non-Telegram users with different wallets can both register", async () => {
+  await register("walletone", null);
+  await register("wallettwo", null);
+  for (const n of ["walletone", "wallettwo"]) {
+    assert.equal((await program.account.usernameRecord.fetch(pdas(n, "", null).usernameRecord)).name, n);
+  }
+});
+
+test("13. a Telegram ID without its TelegramIndex account (or vice versa) is rejected", async () => {
+  const owner = web3.Keypair.generate();
+  const tg = freshTelegramId();
+  await expectFail(
+    program.methods
+      .registerUsername("mismatch", "mlsmatch", new BN(tg.toString()))
+      .accountsPartial({ ...pdas("mismatch", "mlsmatch", null, owner.publicKey), authority: authority.publicKey, owner: owner.publicKey })
+      .signers([owner])
+      .rpc(),
+    "TelegramIndexMismatch",
+  );
 });

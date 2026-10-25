@@ -17,15 +17,22 @@ pub mod pay_system {
         Ok(())
     }
 
-    /// Registers `name` for `owner`. The authority co-signs to attest it verified `telegram_id`.
-    /// `name` must already be normalized; `skeleton` is recomputed and checked so clients can't lie.
-    /// Uniqueness (name, lookalike, one name per Telegram ID) comes from `init` on the three PDAs.
+    /// Registers `name` for `owner`. The authority co-signs to attest it verified the sign-in
+    /// (and `telegram_id`, when the user signed in with Telegram). `name` must already be
+    /// normalized; `skeleton` is recomputed and checked so clients can't lie.
+    /// Uniqueness comes from `init`: name, lookalike, one name per wallet (OwnerIndex) and,
+    /// for Telegram users, one name per Telegram ID (TelegramIndex).
     pub fn register_username(
         ctx: Context<RegisterUsername>,
         name: String,
         skeleton: String,
-        telegram_id: u64,
+        telegram_id: Option<u64>,
     ) -> Result<()> {
+        // The TelegramIndex account must be passed exactly when there is a Telegram ID.
+        require!(
+            telegram_id.is_some() == ctx.accounts.telegram_index.is_some(),
+            PayError::TelegramIndexMismatch
+        );
         let (normalized, expected_skeleton) = username::validate(&name).map_err(|e| match e {
             username::UsernameError::Invalid => PayError::InvalidUsername,
             username::UsernameError::Reserved => PayError::ReservedUsername,
@@ -47,9 +54,14 @@ pub mod pay_system {
         skeleton_record.username = record_key;
         skeleton_record.bump = ctx.bumps.skeleton_record;
 
-        let telegram_index = &mut ctx.accounts.telegram_index;
-        telegram_index.username = record_key;
-        telegram_index.bump = ctx.bumps.telegram_index;
+        let owner_index = &mut ctx.accounts.owner_index;
+        owner_index.username = record_key;
+        owner_index.bump = ctx.bumps.owner_index;
+
+        if let Some(telegram_index) = ctx.accounts.telegram_index.as_mut() {
+            telegram_index.username = record_key;
+            telegram_index.bump = ctx.bumps.telegram_index.unwrap_or_default();
+        }
 
         Ok(())
     }
@@ -71,7 +83,7 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(name: String, skeleton: String, telegram_id: u64)]
+#[instruction(name: String, skeleton: String, telegram_id: Option<u64>)]
 pub struct RegisterUsername<'info> {
     #[account(seeds = [b"config"], bump = config.bump)]
     pub config: Account<'info, Config>,
@@ -94,14 +106,24 @@ pub struct RegisterUsername<'info> {
         bump,
     )]
     pub skeleton_record: Account<'info, SkeletonRecord>,
+    /// One name per wallet, whatever the sign-in method.
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + OwnerIndex::INIT_SPACE,
+        seeds = [b"owner", owner.key().as_ref()],
+        bump,
+    )]
+    pub owner_index: Account<'info, OwnerIndex>,
+    /// Only for Telegram sign-ups (None for email / Google / Apple / wallet).
     #[account(
         init,
         payer = authority,
         space = 8 + TelegramIndex::INIT_SPACE,
-        seeds = [b"tg", telegram_id.to_le_bytes().as_ref()],
+        seeds = [b"tg", telegram_id.unwrap_or_default().to_le_bytes().as_ref()],
         bump,
     )]
-    pub telegram_index: Account<'info, TelegramIndex>,
+    pub telegram_index: Option<Account<'info, TelegramIndex>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -117,7 +139,7 @@ pub struct Config {
 #[derive(InitSpace)]
 pub struct UsernameRecord {
     pub owner: Pubkey,
-    pub telegram_id: u64,
+    pub telegram_id: Option<u64>,
     #[max_len(20)]
     pub name: String,
     pub created_at: i64,
@@ -128,6 +150,14 @@ pub struct UsernameRecord {
 #[derive(InitSpace)]
 pub struct SkeletonRecord {
     /// The UsernameRecord PDA that owns this skeleton.
+    pub username: Pubkey,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct OwnerIndex {
+    /// The UsernameRecord PDA owned by this wallet.
     pub username: Pubkey,
     pub bump: u8,
 }
@@ -150,4 +180,6 @@ pub enum PayError {
     SkeletonMismatch,
     #[msg("Signer is not the configured authority")]
     Unauthorized,
+    #[msg("Pass the TelegramIndex account exactly when telegram_id is set")]
+    TelegramIndexMismatch,
 }

@@ -36,6 +36,8 @@ npm test -w @pay-system/miniapp  # Mini App
 
 On WSL with the repo under `/mnt/c`: set `CARGO_TARGET_DIR=/root/target/pay_system` so build output stays off the Windows/OneDrive filesystem. The script copies the `.so` back into `target/deploy` and keeps the validator ledger in `~/.cache/pay-system`. Don't run `npm install` inside WSL against the Windows `node_modules`; the anchor tests only need pure-JS packages, which work from either side.
 
+The anchor run prints `bigint: Failed to load bindings, pure JS will be used` because `npm ci --ignore-scripts` skips a native addon build. It's harmless.
+
 The program id comes from `target/deploy/pay_system-keypair.json` (gitignored, generated on first run). `anchor keys sync` (run by the script) rewrites `declare_id!` and `Anchor.toml` to match your local keypair.
 
 ## Program: accounts
@@ -43,11 +45,12 @@ The program id comes from `target/deploy/pay_system-keypair.json` (gitignored, g
 | Account | Seeds | Fields |
 |---|---|---|
 | `Config` | `["config"]` | `authority` (backend key + fee payer), `usdc_mint`, `bump` |
-| `UsernameRecord` | `["username", name]` | `owner`, `telegram_id`, `name` (≤ 20), `created_at`, `bump` |
+| `UsernameRecord` | `["username", name]` | `owner`, `telegram_id` (`Option<u64>`), `name` (≤ 20), `created_at`, `bump` |
 | `SkeletonRecord` | `["skeleton", skeleton(name)]` | `username` (→ UsernameRecord), `bump` |
-| `TelegramIndex` | `["tg", telegram_id as u64 LE]` | `username` (→ UsernameRecord), `bump` |
+| `OwnerIndex` | `["owner", owner]` | `username` (→ UsernameRecord), `bump`. One name per wallet, every sign-in method |
+| `TelegramIndex` | `["tg", telegram_id as u64 LE]` | `username` (→ UsernameRecord), `bump`. Only for Telegram sign-ups |
 
-`register_username(name, skeleton, telegram_id)` needs signatures from `owner` and `authority` (the authority pays and attests it verified the Telegram ID). `name` must already be normalized (lowercase), because the PDA seed comes from the raw argument. The program recomputes the skeleton and rejects a mismatch. Uniqueness of name, lookalike and Telegram ID comes from `init` on the three PDAs.
+`register_username(name, skeleton, telegram_id: Option<u64>)` needs signatures from `owner` and `authority` (the authority pays and attests it verified the sign-in). Pass the optional `telegram_index` account exactly when `telegram_id` is `Some` (else `TelegramIndexMismatch`). `name` must already be normalized (lowercase), because the PDA seed comes from the raw argument. The program recomputes the skeleton and rejects a mismatch. Uniqueness of name, lookalike, wallet and (for Telegram users) Telegram ID comes from `init` on those PDAs.
 
 Skeleton: remove `_` → `rn`→`m` → map `0→o 1→l i→l 5→s 3→e 8→b` → collapse repeated characters.
 
@@ -59,12 +62,13 @@ Skeleton: remove `_` → `rn`→`m` → map `0→o 1→l i→l 5→s 3→e 8→b
 | `ReservedUsername` | admin, support, help, official, solana, telegram, paysystem, pay_system, wallet, root, system, mod, moderator, usdc |
 | `SkeletonMismatch` | `skeleton` arg ≠ recomputed skeleton |
 | `Unauthorized` | signer isn't `config.authority` |
-| *(system)* "already in use" | name taken / too similar / Telegram ID already has a name. Clients diagnose which by checking the three PDAs (`tests/username.test.ts` → `diagnose`) |
+| `TelegramIndexMismatch` | `telegram_id` and the optional `telegram_index` account disagree |
+| *(system)* "already in use" | name taken / too similar / wallet already has a name / Telegram ID already has a name. Clients diagnose which by checking the three PDAs (`tests/username.test.ts` → `diagnose`) |
 
 ## Before devnet
 
 - [ ] **Gate `initialize` to the program's upgrade authority** (check `program_data.upgrade_authority_address`). Today the first caller becomes the authority. Fine on localnet, front-runnable on devnet.
-- [ ] Replace the placeholder program id in `declare_id!` / `Anchor.toml` with a real keypair (never committed).
+- [ ] Generate the devnet program keypair, store it OUTSIDE the repo, and commit only its PUBLIC id in `declare_id!` / `Anchor.toml` (stop running `anchor keys sync` against it).
 
 ## Send to address
 
