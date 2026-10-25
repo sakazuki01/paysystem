@@ -1,0 +1,51 @@
+{
+  "description": "Shared ticket rule fixtures (LOGIC §10.3). Loaded by packages/shared tests, the Mini App mock and the Anchor program tests. Money is in cents; times are hours relative to 'now'. The program works in USDC base units (cents × 10 000) and must floor the cap to the cent the same way.",
+  "cap": [
+    { "faceCents": 2500, "bps": 11000, "capCents": 2750, "why": "demo: $25 × 110% = $27.50" },
+    { "faceCents": 999, "bps": 11500, "capCents": 1148, "why": "$9.99 × 115% = $11.4885 → floor to $11.48" },
+    { "faceCents": 1000, "bps": 10000, "capCents": 1000, "why": "no markup allowed" },
+    { "faceCents": 1000, "bps": 20000, "capCents": 2000, "why": "max cap 200%" },
+    { "faceCents": 1, "bps": 15000, "capCents": 1, "why": "1¢ × 150% = 1.5¢ → 1¢" },
+    { "faceCents": 3333, "bps": 10500, "capCents": 3499, "why": "$33.33 × 105% = $34.9965 → $34.99" }
+  ],
+  "event": { "startsInHours": 240, "lockHours": 24, "supply": 120, "sold": 83, "faceCents": 2500, "bps": 11000 },
+  "gift": [
+    { "case": "first gift, registered, outside lock", "giftsUsed": 0, "listed": false, "checkedIn": false, "registered": true, "startsInHours": 240, "expect": "ok" },
+    { "case": "second gift", "giftsUsed": 1, "listed": false, "checkedIn": false, "registered": true, "startsInHours": 240, "expect": "AlreadyGifted" },
+    { "case": "inside the 24 h lock", "giftsUsed": 0, "listed": false, "checkedIn": false, "registered": true, "startsInHours": 23, "expect": "TransferLocked" },
+    { "case": "exactly at the lock boundary", "giftsUsed": 0, "listed": false, "checkedIn": false, "registered": true, "startsInHours": 24, "expect": "TransferLocked" },
+    { "case": "unregistered recipient", "giftsUsed": 0, "listed": false, "checkedIn": false, "registered": false, "startsInHours": 240, "expect": "RecipientNotRegistered" },
+    { "case": "listed ticket", "giftsUsed": 0, "listed": true, "checkedIn": false, "registered": true, "startsInHours": 240, "expect": "Listed" },
+    { "case": "used ticket", "giftsUsed": 0, "listed": false, "checkedIn": true, "registered": true, "startsInHours": 240, "expect": "CheckedIn" }
+  ],
+  "list": [
+    { "case": "at the cap", "priceCents": 2750, "checkedIn": false, "startsInHours": 240, "expect": "ok" },
+    { "case": "below face", "priceCents": 1000, "checkedIn": false, "startsInHours": 240, "expect": "ok" },
+    { "case": "one cent over the cap", "priceCents": 2751, "checkedIn": false, "startsInHours": 240, "expect": "PriceAboveCap" },
+    { "case": "the $40 demo attempt", "priceCents": 4000, "checkedIn": false, "startsInHours": 240, "expect": "PriceAboveCap" },
+    { "case": "zero", "priceCents": 0, "checkedIn": false, "startsInHours": 240, "expect": "InvalidPrice" },
+    { "case": "inside the lock", "priceCents": 2600, "checkedIn": false, "startsInHours": 12, "expect": "TransferLocked" },
+    { "case": "used ticket", "priceCents": 2600, "checkedIn": true, "startsInHours": 240, "expect": "CheckedIn" }
+  ],
+  "buy": [
+    { "case": "tickets left", "sold": 83, "supply": 120, "startsInHours": 240, "expect": "ok" },
+    { "case": "last ticket", "sold": 119, "supply": 120, "startsInHours": 240, "expect": "ok" },
+    { "case": "sold out", "sold": 120, "supply": 120, "startsInHours": 240, "expect": "SoldOut" },
+    { "case": "already started", "sold": 10, "supply": 120, "startsInHours": -1, "expect": "EventStarted" }
+  ],
+  "buyListed": [
+    { "case": "listed, matches", "listedCents": 2600, "seller": "alex", "expectedSeller": "alex", "expectedCents": 2600, "startsInHours": 240, "expect": "ok" },
+    { "case": "not listed", "listedCents": 0, "seller": "alex", "expectedSeller": "alex", "expectedCents": 2600, "startsInHours": 240, "expect": "NotListed" },
+    { "case": "price changed", "listedCents": 2700, "seller": "alex", "expectedSeller": "alex", "expectedCents": 2600, "startsInHours": 240, "expect": "ListingChanged" },
+    { "case": "seller changed (resold)", "listedCents": 2600, "seller": "maya", "expectedSeller": "alex", "expectedCents": 2600, "startsInHours": 240, "expect": "ListingChanged" },
+    { "case": "inside the lock", "listedCents": 2600, "seller": "alex", "expectedSeller": "alex", "expectedCents": 2600, "startsInHours": 2, "expect": "TransferLocked" },
+    { "case": "buying your own listing", "listedCents": 2600, "seller": "alex", "expectedSeller": "alex", "expectedCents": 2600, "startsInHours": 240, "buyer": "alex", "expect": "OwnTicket" }
+  ],
+  "checkIn": [
+    { "case": "on time", "checkedIn": false, "startsInHours": 1, "expect": "ok" },
+    { "case": "second scan", "checkedIn": true, "startsInHours": 1, "expect": "AlreadyCheckedIn" },
+    { "case": "too early (13 h before)", "checkedIn": false, "startsInHours": 13, "expect": "CheckInWindow" },
+    { "case": "too late (13 h after)", "checkedIn": false, "startsInHours": -13, "expect": "CheckInWindow" },
+    { "case": "edge: 12 h after start", "checkedIn": false, "startsInHours": -12, "expect": "ok" }
+  ]
+}
