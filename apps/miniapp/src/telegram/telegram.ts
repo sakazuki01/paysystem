@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { installDevShim, isRealTelegram } from "./devShim";
+import { useOnline } from "../state/online";
 import type { ThemeParams, WebApp } from "./types";
 
 let webApp: WebApp | null = null;
@@ -72,6 +73,9 @@ export interface MainButtonConfig {
  * the button while mounted; it is hidden on unmount.
  */
 export function useMainButton({ text, onClick, disabled = false, progress = false, visible = true }: MainButtonConfig) {
+  // Spec §7: offline disables the MainButton everywhere.
+  const online = useOnline();
+  disabled = disabled || !online;
   const handler = useRef(onClick);
   handler.current = onClick;
 

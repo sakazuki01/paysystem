@@ -34,7 +34,10 @@ export interface RecipientInfo {
   avatarUrl?: string;
   createdAt?: number;
   timesPaid: number;
+  /** Short form for display, e.g. 7xKX…9fQz. */
   fingerprint?: string;
+  /** Full wallet address (copied by the Fingerprint control). */
+  address?: string;
 }
 
 export type ActivityStatus = "sent" | "received" | "pending" | "refundable" | "refunded" | "failed";

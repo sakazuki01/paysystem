@@ -166,6 +166,7 @@ export class MockPayApi implements PayApi {
       createdAt: acc.createdAt,
       timesPaid,
       fingerprint: fingerprint(acc.wallet),
+      address: acc.wallet,
     };
   }
 
