@@ -1,0 +1,43 @@
+{
+  "description": "Shared username fixtures. Loaded by Rust unit tests (programs/pay_system) and TS tests (packages/shared). Both must agree on every case.",
+  "reserved": ["admin", "support", "help", "official", "solana", "telegram", "paysystem", "pay_system", "wallet", "root", "system", "mod", "moderator", "usdc"],
+  "valid": [
+    { "input": "alex", "normalized": "alex", "skeleton": "alex" },
+    { "input": "a1ex", "normalized": "a1ex", "skeleton": "alex" },
+    { "input": "aiex", "normalized": "aiex", "skeleton": "alex" },
+    { "input": "ALEX", "normalized": "alex", "skeleton": "alex" },
+    { "input": "alex_", "normalized": "alex_", "skeleton": "alex" },
+    { "input": "a_l_e_x", "normalized": "a_l_e_x", "skeleton": "alex" },
+    { "input": "aalex", "normalized": "aalex", "skeleton": "alex" },
+    { "input": "al3x", "normalized": "al3x", "skeleton": "alex" },
+    { "input": "rnike", "normalized": "rnike", "skeleton": "mlke" },
+    { "input": "mike", "normalized": "mike", "skeleton": "mlke" },
+    { "input": "j0hn", "normalized": "j0hn", "skeleton": "john" },
+    { "input": "john", "normalized": "john", "skeleton": "john" },
+    { "input": "5akz", "normalized": "5akz", "skeleton": "sakz" },
+    { "input": "sakz", "normalized": "sakz", "skeleton": "sakz" },
+    { "input": "8ob", "normalized": "8ob", "skeleton": "bob" },
+    { "input": "bob", "normalized": "bob", "skeleton": "bob" },
+    { "input": "r_n", "normalized": "r_n", "skeleton": "m" },
+    { "input": "rrnn", "normalized": "rrnn", "skeleton": "rmn" },
+    { "input": "rnrn", "normalized": "rnrn", "skeleton": "m" },
+    { "input": "hello", "normalized": "hello", "skeleton": "helo" },
+    { "input": "MixedCase_99", "normalized": "mixedcase_99", "skeleton": "mlxedcase9" },
+    { "input": "abcdefghijklmnopqrst", "normalized": "abcdefghijklmnopqrst", "skeleton": "abcdefghljklmnopqrst" },
+    { "input": "administrator", "normalized": "administrator", "skeleton": "admlnlstrator" }
+  ],
+  "invalid": [
+    { "input": "ab", "error": "InvalidUsername", "why": "too short" },
+    { "input": "abcdefghijklmnopqrstu", "error": "InvalidUsername", "why": "21 chars" },
+    { "input": "al ex", "error": "InvalidUsername", "why": "space" },
+    { "input": "alex!", "error": "InvalidUsername", "why": "punctuation" },
+    { "input": "аlex", "error": "InvalidUsername", "why": "Cyrillic a" },
+    { "input": "😀😀😀", "error": "InvalidUsername", "why": "emoji" },
+    { "input": "", "error": "InvalidUsername", "why": "empty" },
+    { "input": "al-ex", "error": "InvalidUsername", "why": "hyphen" },
+    { "input": "admin", "error": "ReservedUsername", "why": "reserved" },
+    { "input": "Admin", "error": "ReservedUsername", "why": "reserved after normalization" },
+    { "input": "pay_system", "error": "ReservedUsername", "why": "reserved" },
+    { "input": "USDC", "error": "ReservedUsername", "why": "reserved after normalization" }
+  ]
+}

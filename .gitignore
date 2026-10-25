@@ -1,0 +1,13 @@
+target/
+node_modules/
+.anchor/
+test-ledger/
+.yarn/
+dist/
+
+# Never commit keypairs
+*-keypair.json
+id.json
+**/keypairs/
+.env
+.env.*
