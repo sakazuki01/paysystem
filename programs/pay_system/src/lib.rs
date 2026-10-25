@@ -1,6 +1,9 @@
 use anchor_lang::prelude::*;
 
+pub mod payments;
 pub mod username;
+
+use payments::*;
 
 declare_id!("9QA6zUCshCS3DjgGrwSMw4vkuLM3dGp4TmZ4U98tEakt");
 
@@ -9,12 +12,39 @@ pub mod pay_system {
     use super::*;
 
     /// One-time setup. The signer becomes the authority (backend key + fee payer).
-    pub fn initialize(ctx: Context<Initialize>, usdc_mint: Pubkey) -> Result<()> {
+    /// `escrow_ttl_secs`: how long unclaimed escrow waits before refund (production: 7 days).
+    pub fn initialize(ctx: Context<Initialize>, usdc_mint: Pubkey, escrow_ttl_secs: i64) -> Result<()> {
+        require!(
+            (MIN_ESCROW_TTL_SECS..=MAX_ESCROW_TTL_SECS).contains(&escrow_ttl_secs),
+            PayError::InvalidTtl
+        );
         let config = &mut ctx.accounts.config;
         config.authority = ctx.accounts.authority.key();
         config.usdc_mint = usdc_mint;
+        config.escrow_ttl_secs = escrow_ttl_secs;
         config.bump = ctx.bumps.config;
         Ok(())
+    }
+
+    /// USDC sender → recipient, exactly once per (sender, intent_id): the Receipt `init` fails
+    /// on any repeat. The recipient's token account is created if missing (authority pays).
+    pub fn pay(ctx: Context<Pay>, _intent_id: IntentId, amount: u64) -> Result<()> {
+        payments::pay(ctx, amount)
+    }
+
+    /// USDC sender → vault owned by an Escrow PDA keyed by (alias_hash, sender, intent_id).
+    pub fn send_to_escrow(ctx: Context<SendToEscrow>, intent_id: IntentId, alias_hash: AliasHash, amount: u64) -> Result<()> {
+        payments::send_to_escrow(ctx, intent_id, alias_hash, amount)
+    }
+
+    /// Before expiry, with the authority's co-signature: vault → claimer; closes vault and escrow.
+    pub fn claim_escrow(ctx: Context<ClaimEscrow>) -> Result<()> {
+        payments::claim_escrow(ctx)
+    }
+
+    /// At or after expiry, by the sender: vault → sender; closes vault and escrow.
+    pub fn refund_escrow(ctx: Context<RefundEscrow>) -> Result<()> {
+        payments::refund_escrow(ctx)
     }
 
     /// Registers `name` for `owner`. The authority co-signs to attest it verified the sign-in
@@ -132,6 +162,7 @@ pub struct RegisterUsername<'info> {
 pub struct Config {
     pub authority: Pubkey,
     pub usdc_mint: Pubkey,
+    pub escrow_ttl_secs: i64,
     pub bump: u8,
 }
 
@@ -182,4 +213,16 @@ pub enum PayError {
     Unauthorized,
     #[msg("Pass the TelegramIndex account exactly when telegram_id is set")]
     TelegramIndexMismatch,
+    #[msg("Amount must be greater than zero")]
+    InvalidAmount,
+    #[msg("Token accounts must use the configured USDC mint")]
+    WrongMint,
+    #[msg("Escrow TTL out of range")]
+    InvalidTtl,
+    #[msg("This escrow has expired; only a refund is possible")]
+    EscrowExpired,
+    #[msg("This escrow hasn't expired yet")]
+    EscrowNotExpired,
+    #[msg("Only the sender can refund")]
+    NotSender,
 }

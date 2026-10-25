@@ -2,19 +2,13 @@ import { test, before } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import anchor from "@coral-xyz/anchor";
-import { createMint } from "@solana/spl-token";
-import type { PaySystem } from "../target/types/pay_system.ts";
 import { validateUsername } from "../packages/shared/src/index.ts";
+import { authority, ensureConfig, program, provider, TEST_ESCROW_TTL_SECS } from "./setup.ts";
 
 const { BN, web3 } = anchor;
 type Keypair = InstanceType<typeof web3.Keypair>;
 type PublicKey = InstanceType<typeof web3.PublicKey>;
 
-const provider = anchor.AnchorProvider.env();
-anchor.setProvider(provider);
-const program = anchor.workspace.PaySystem as InstanceType<typeof anchor.Program<PaySystem>>;
-// The provider wallet plays the backend: config authority + fee payer.
-const authority: Keypair = (provider.wallet as unknown as { payer: Keypair }).payer;
 
 const vectors = JSON.parse(
   readFileSync(new URL("../shared/username-vectors.json", import.meta.url), "utf8"),
@@ -107,19 +101,19 @@ const ALREADY_IN_USE = "already in use";
 let usdcMint: PublicKey;
 
 before(async () => {
-  usdcMint = await createMint(provider.connection, authority, authority.publicKey, null, 6);
-  await program.methods.initialize(usdcMint).accounts({ authority: authority.publicKey }).rpc();
+  ({ usdcMint } = await ensureConfig()); // whichever test file runs first initializes
 });
 
 test("initialize stores authority and mint", async () => {
   const config = await program.account.config.fetch(pda(seed("config")));
   assert.ok(config.authority.equals(authority.publicKey));
   assert.ok(config.usdcMint.equals(usdcMint));
+  assert.equal(config.escrowTtlSecs.toNumber(), TEST_ESCROW_TTL_SECS);
 });
 
 test("initialize cannot be called twice", async () => {
   await expectFail(
-    program.methods.initialize(usdcMint).accounts({ authority: authority.publicKey }).rpc(),
+    program.methods.initialize(usdcMint, new BN(604_800)).accounts({ authority: authority.publicKey }).rpc(),
     ALREADY_IN_USE,
   );
 });
