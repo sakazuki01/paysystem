@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronRight, Ticket } from "lucide-react";
 import { Screen } from "../components/Screen";
 import { Avatar, Banner, Card, Skeleton } from "../components/primitives";
 import { ActivityRow } from "../components/rows";
@@ -15,6 +15,9 @@ export function Home() {
   const balance = useAsync(() => api.getBalance());
   const activity = useAsync(() => api.getActivity());
   const incoming = useAsync(() => api.getIncomingEscrows());
+  const myTickets = useAsync(() => api.getMyTickets());
+  const upcoming = myTickets.data?.filter((t) => !t.checkedIn && t.startsAt > Date.now()).length ?? 0;
+  const ticketsCaption = upcoming ? `${upcoming} upcoming` : "Find events";
   const username = me.username ?? me.telegramHandle;
 
   return (
@@ -70,6 +73,25 @@ export function Home() {
           Receive
         </button>
       </div>
+
+      <button
+        type="button"
+        className="card entry-row"
+        aria-label={`Tickets, ${ticketsCaption}`}
+        onClick={() => {
+          haptic.tap();
+          nav.push({ name: "events" });
+        }}
+      >
+        <span className="entry-row__icon" aria-hidden="true">
+          <Ticket size={24} strokeWidth={2} />
+        </span>
+        <span className="row__main">
+          <span className="row__title">Tickets</span>
+          <span className="row__caption">{ticketsCaption}</span>
+        </span>
+        <ChevronRight size={20} strokeWidth={2} aria-hidden="true" className="row__chevron" />
+      </button>
 
       {incoming.data?.map((e) => (
         <Banner

@@ -175,6 +175,15 @@ export class MockPayApi implements PayApi {
     this.clock.offset += ts - this.now();
   }
 
+  /** Dev: sign in as someone else in the same world (App re-boots on the "pay:relogin" event). */
+  __switchUser(handle: string) {
+    this.meHandle = handle;
+  }
+
+  get __me() {
+    return this.meHandle;
+  }
+
   __fund(cents: number) {
     this.me().balanceCents += cents;
   }

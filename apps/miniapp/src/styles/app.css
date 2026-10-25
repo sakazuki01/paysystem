@@ -767,6 +767,251 @@ p {
 .row--static { cursor: default; }
 .detail__explorer { align-self: center; }
 
+
+/* ---------- Tickets (S11–S16) ---------- */
+
+.pill--brand { background: var(--brand-soft); color: var(--brand-text); }
+
+.link-inline {
+  display: inline;
+  padding: 0;
+  color: var(--brand-text);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch);
+  height: var(--touch);
+  margin-right: calc(-1 * var(--s-3));
+  border-radius: var(--r-full);
+  color: var(--brand-text);
+}
+
+.btn--small { min-height: var(--touch); padding: 0 var(--s-4); }
+
+.row__chevron { flex: none; color: var(--text-muted); }
+
+/* Home entry row */
+.entry-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 64px;
+  text-align: left;
+}
+.entry-row:active { opacity: 0.85; }
+.entry-row .row__caption { color: var(--text-muted-on-card); }
+.entry-row__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  background: var(--avatar-bg);
+  color: var(--brand-text);
+}
+
+/* Segmented control */
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--s-1);
+  padding: var(--s-1);
+  border-radius: var(--r-md);
+  background: var(--bg-secondary);
+}
+.segmented__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 40px;
+  border-radius: var(--r-sm);
+  font: var(--type-label);
+  color: var(--text-muted-on-card);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.segmented__option.is-selected { background: var(--bg); color: var(--text); }
+.segmented__badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-full);
+  background: var(--brand);
+  color: var(--on-brand);
+  font: var(--type-caption);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+/* Date badge */
+.date-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: var(--text);
+}
+.date-badge__month { font: var(--type-caption); font-weight: 600; letter-spacing: 0.02em; color: var(--brand-text); }
+.date-badge__day { font: var(--type-headline); line-height: 20px; }
+.row .date-badge { background: var(--avatar-bg); }
+
+/* Event cards */
+.event-list { display: flex; flex-direction: column; gap: var(--s-3); }
+.event-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--bg-secondary);
+  text-align: left;
+}
+.event-card:active { opacity: 0.85; }
+.event-card__block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--r-md);
+  background: var(--brand-soft);
+}
+.event-card__body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.event-card__body .caption--muted { color: var(--text-muted-on-card); }
+.event-card__side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-1); }
+
+/* S12 */
+.event-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  padding: var(--s-5) var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--brand-soft);
+}
+.event-hero .date-badge { width: 56px; height: 56px; }
+.event-hero .body.caption--muted { color: var(--text); }
+.detail-list--flat { padding: 0; background: none; }
+
+/* Bottom sheet */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 25; /* under the MainButton, which confirms */
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.32);
+  animation: fade-in var(--dur-base) var(--ease);
+}
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-4) var(--s-4) calc(var(--s-6) + var(--shim-bottom, 0px) + var(--tg-safe-area-inset-bottom, 0px));
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  background: var(--bg);
+  box-shadow: var(--shadow-sheet);
+  animation: sheet-in var(--dur-slow) var(--ease);
+}
+.sheet:focus { outline: none; }
+.sheet__head { display: flex; align-items: center; justify-content: space-between; }
+.sheet__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch);
+  height: var(--touch);
+  margin-right: calc(-1 * var(--s-3));
+  border-radius: var(--r-full);
+  color: var(--text-muted);
+}
+@keyframes sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* S13 ticket card: notched sides via radial-gradient cut-outs at the tear line */
+.ticket-card {
+  --notch: 12px;
+  --tear: 62%;
+  position: relative;
+  border-radius: var(--r-lg);
+  background:
+    radial-gradient(circle at 0 var(--tear), transparent var(--notch), var(--bg-secondary) calc(var(--notch) + 0.5px)) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% var(--tear), transparent var(--notch), var(--bg-secondary) calc(var(--notch) + 0.5px)) right / 51% 100% no-repeat;
+}
+.ticket-card__top { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-1); padding: var(--s-5) var(--s-5) var(--s-4); }
+.ticket-card__top .body.caption--muted { color: var(--text-muted-on-card); }
+.ticket-card__meta { display: flex; gap: var(--s-4); margin-top: var(--s-2); font: var(--type-label); }
+.ticket-card__tear { margin: 0 var(--s-5); border-top: 2px dashed var(--separator); }
+.ticket-card__bottom { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); padding: var(--s-5); }
+.ticket-card__used { padding: var(--s-8) 0; color: var(--text-muted-on-card); font: var(--type-body); }
+.ticket-qr { padding: var(--s-4); border-radius: var(--r-md); background: #FFFFFF; line-height: 0; }
+.ticket-qr__caption { display: flex; align-items: center; gap: var(--s-2); font: var(--type-caption); color: var(--text-muted-on-card); text-align: center; }
+
+.countdown { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; width: 22px; height: 22px; }
+.countdown svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.countdown__track { fill: none; stroke: var(--separator); stroke-width: 2.5; }
+.countdown__progress { fill: none; stroke: var(--brand); stroke-width: 2.5; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+.countdown__text { font-size: 9px; font-weight: 600; line-height: 1; color: var(--text); }
+
+.ticket-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.ticket-actions__item { display: flex; flex-direction: column; gap: var(--s-1); }
+.ticket-actions__item .btn { width: 100%; }
+.ticket-actions__listed { text-align: center; }
+.btn:disabled { opacity: 0.5; }
+
+/* S16 check-in */
+.checkin { align-items: center; justify-content: center; text-align: center; }
+.checkin__counter { font: var(--type-label); color: var(--text-muted); }
+.checkin__icon { color: var(--brand-text); }
+.checkin-result {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--s-6);
+  color: #FFFFFF;
+  text-align: center;
+  animation: fade-in var(--dur-fast) var(--ease);
+}
+/* Full-bleed states use the AA text shades so white type passes (5.4:1 and 5.3:1). */
+.checkin-result.is-admit { background: #0B7A45; }
+.checkin-result.is-reject { background: #C8303A; }
+.checkin-result__counter { position: absolute; top: calc(var(--s-6) + var(--tg-safe-area-inset-top, 0px)); font: var(--type-label); opacity: 0.9; }
+.checkin-result__mark { display: inline-flex; align-items: center; justify-content: center; width: 112px; height: 112px; border-radius: var(--r-full); background: rgba(255, 255, 255, 0.18); }
+.checkin-result__title { font: var(--type-amount-l); }
+.checkin-result__detail { font: var(--type-headline); opacity: 0.95; }
+
+@media (prefers-reduced-motion: reduce) {
+  .countdown__progress { transition: none; }
+  .sheet { animation-name: fade-in; }
+}
+
 /* ---------- Dev shim (outside Telegram only) ---------- */
 
 .tg-shim-top {
@@ -835,6 +1080,25 @@ p {
   animation: spin 0.8s linear infinite;
 }
 .tg-shim-spinner[hidden] { display: none; }
+
+
+.tg-shim-dev { margin-left: auto; margin-right: var(--s-2); }
+.tg-shim-dev + .tg-shim-theme { margin-left: 0; }
+.tg-shim-dev[hidden], .tg-shim-menu[hidden] { display: none; }
+.tg-shim-menu {
+  position: absolute;
+  top: 44px;
+  right: var(--s-2);
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+  padding: var(--s-1);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-sheet), 0 0 0 1px var(--separator);
+}
+.tg-shim-menu button { min-height: var(--touch); padding: 0 var(--s-3); border-radius: var(--r-sm); text-align: left; font: var(--type-label); }
+.tg-shim-menu button:hover { background: var(--bg-secondary); }
 
 /* ---------- Reduced motion: keep opacity, drop transforms ---------- */
 

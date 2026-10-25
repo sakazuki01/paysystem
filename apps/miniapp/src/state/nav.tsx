@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import type { RecipientInfo } from "../api/PayApi";
 
 export interface SuccessInfo {
-  kind: "sent" | "received" | "refunded";
+  kind: "sent" | "received" | "refunded" | "ticket" | "gift";
   amountCents: number;
   counterparty: string;
   settleMs: number;
@@ -11,6 +11,8 @@ export interface SuccessInfo {
   toAddress?: string;
   /** Sent to someone not on Pay System yet (shows the 7-day claim caption). */
   escrow?: boolean;
+  /** Ticket purchases: shown as "Ticket #014 · Settled in …". */
+  ticketNo?: number;
   /** Where Done goes. Default: home. */
   next?: "home" | "username";
 }
@@ -25,7 +27,13 @@ export type Route =
   | { name: "success"; info: SuccessInfo }
   | { name: "claim"; id: string }
   | { name: "receive" }
-  | { name: "activity"; id: string };
+  | { name: "activity"; id: string }
+  | { name: "events"; tab?: "events" | "mine" }
+  | { name: "event"; id: string }
+  | { name: "ticket"; id: string }
+  | { name: "gift"; ticketId: string }
+  | { name: "resell"; ticketId: string }
+  | { name: "checkin"; eventId: string };
 
 interface Nav {
   stack: Route[];

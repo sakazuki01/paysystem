@@ -2,11 +2,17 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import type { Me, PayApi } from "./api/PayApi";
 import { Banner, Logo, Skeleton } from "./components/primitives";
 import { NETWORK_ERROR } from "./lib/errors";
-import { AppProvider } from "./state/app";
+import { AppProvider, useApp } from "./state/app";
 import { NavProvider, useNav, type Route } from "./state/nav";
 import { ToastProvider } from "./state/toast";
 import { applyTheme, brandColor, tg } from "./telegram/telegram";
 import { ActivityDetail } from "./screens/ActivityDetail";
+import { CheckIn } from "./screens/CheckIn";
+import { EventDetail } from "./screens/EventDetail";
+import { Events } from "./screens/Events";
+import { GiftTicket } from "./screens/GiftTicket";
+import { MyTicket } from "./screens/MyTicket";
+import { Resell } from "./screens/Resell";
 import { Amount } from "./screens/Amount";
 import { Claim } from "./screens/Claim";
 import { Confirm } from "./screens/Confirm";
@@ -41,6 +47,16 @@ export function App({ api }: { api: PayApi }) {
     };
     app.onEvent("themeChanged", onTheme);
     return () => app.offEvent("themeChanged", onTheme);
+  }, []);
+
+  // Dev menu: "Sign in as …" re-boots the app as another user of the same mock world.
+  useEffect(() => {
+    const relogin = () => {
+      setMe(null);
+      setAttempt((a) => a + 1);
+    };
+    window.addEventListener("pay:relogin", relogin);
+    return () => window.removeEventListener("pay:relogin", relogin);
   }, []);
 
   useEffect(() => {
@@ -91,6 +107,11 @@ function Boot({ failed, retry }: { failed: boolean; retry(): void }) {
 
 function Shell() {
   const nav = useNav();
+  const { invalidate } = useApp();
+  useEffect(() => {
+    window.addEventListener("pay:refresh", invalidate);
+    return () => window.removeEventListener("pay:refresh", invalidate);
+  }, [invalidate]);
   const route = nav.current;
   const canGoBack = nav.stack.length > 1 && route.name !== "success";
 
@@ -136,5 +157,17 @@ function renderRoute(route: Route) {
       return <Receive />;
     case "activity":
       return <ActivityDetail id={route.id} />;
+    case "events":
+      return <Events tab={route.tab} />;
+    case "event":
+      return <EventDetail id={route.id} />;
+    case "ticket":
+      return <MyTicket id={route.id} />;
+    case "gift":
+      return <GiftTicket ticketId={route.ticketId} />;
+    case "resell":
+      return <Resell ticketId={route.ticketId} />;
+    case "checkin":
+      return <CheckIn eventId={route.eventId} />;
   }
 }

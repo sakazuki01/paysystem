@@ -57,7 +57,22 @@ export function installDevShim(opts: { scheme?: "light" | "dark"; startParam?: s
   themeEl.type = "button";
   themeEl.className = "tg-shim-theme";
 
-  topBar.append(backEl, themeEl);
+  const devEl = document.createElement("button");
+  devEl.type = "button";
+  devEl.className = "tg-shim-theme tg-shim-dev";
+  devEl.textContent = "Dev";
+  devEl.setAttribute("aria-haspopup", "menu");
+  devEl.hidden = true;
+  const devMenu = document.createElement("div");
+  devMenu.className = "tg-shim-menu";
+  devMenu.setAttribute("role", "menu");
+  devMenu.hidden = true;
+  devEl.addEventListener("click", () => {
+    devMenu.hidden = !devMenu.hidden;
+    if (!devMenu.hidden) renderDevMenu();
+  });
+
+  topBar.append(backEl, devEl, themeEl, devMenu);
 
   const mainEl = document.createElement("button");
   mainEl.type = "button";
@@ -221,6 +236,24 @@ export function installDevShim(opts: { scheme?: "light" | "dark"; startParam?: s
   }
   shimSetScheme = setShimScheme;
 
+  function renderDevMenu() {
+    devMenu.replaceChildren(
+      ...devActions.map((a) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.setAttribute("role", "menuitem");
+        item.textContent = a.label();
+        item.addEventListener("click", () => {
+          devMenu.hidden = true;
+          a.run();
+        });
+        return item;
+      }),
+    );
+  }
+  showDevButton = () => (devEl.hidden = devActions.length === 0);
+  showDevButton();
+
   renderThemeToggle();
   render();
   document.documentElement.style.setProperty("--shim-top", "44px");
@@ -230,6 +263,14 @@ export function installDevShim(opts: { scheme?: "light" | "dark"; startParam?: s
 }
 
 let shimSetScheme: ((s: "light" | "dark") => void) | null = null;
+let showDevButton: () => void = () => {};
+const devActions: { label: () => string; run: () => void }[] = [];
+
+/** Dev only: add an item to the shim's "Dev" menu (label is re-read each time the menu opens). */
+export function registerDevAction(label: () => string, run: () => void) {
+  devActions.push({ label, run });
+  showDevButton();
+}
 
 /** Dev/test helper: flip the fake Telegram theme and fire themeChanged. */
 export function setShimScheme(scheme: "light" | "dark") {
@@ -241,6 +282,8 @@ export function uninstallDevShim() {
   if (!installed) return;
   installed.root.remove();
   delete window.Telegram;
+  devActions.length = 0;
+  showDevButton = () => {};
   installed = null;
   shimSetScheme = null;
 }
