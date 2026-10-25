@@ -38,7 +38,8 @@ Build them as CSS custom properties in `apps/miniapp/src/styles/tokens.css`. Sur
 | `--text-muted` | `--tg-theme-hint-color` / `#6B7280` | `#9097A3` | secondary text |
 | `--separator` | `--tg-theme-section-separator-color` / `#E5E7EB` | `#2C2E36` | dividers |
 | `--brand` | `#6A45F5` | `#6F52F0` | brand FILLS: Send button, MainButton, gradient start, focus ring |
-| `--brand-text` | `#6A45F5` | `#8F74FF` | brand TEXT and icons: links, selected chip text, Receive button text |
+| `--brand-text` | `#6A45F5` | `#A08AFF` | brand TEXT and icons: links, selected chip text, Receive button text |
+| `--avatar-bg` | `color-mix(in srgb, #6A45F5 10%, var(--bg))` | `color-mix(in srgb, #8F74FF 15%, var(--bg))` | SOLID avatar / recipient-pill background, so it stays the same inside cards. Measured: initials 4.79 (light), 5.26 (dark) |
 | `--brand-soft` | `#6A45F51A` | `#8F74FF26` | accent backgrounds, avatars |
 | `--on-brand` | `#FFFFFF` | `#FFFFFF` | text on brand |
 | `--success` | `#14B86A` | `#2FD083` | received, claimed, done |
@@ -96,7 +97,7 @@ Minimum text size is 13 px. Never use all-caps body text. Small labels may use l
 
 | Component | Spec |
 |---|---|
-| **Avatar** | Circle, 40 px in lists and 64 px on the confirm card. Uses the Telegram photo if available, otherwise initials on `--brand-soft` with `--brand-text` text. |
+| **Avatar** | Circle, 40 px in lists and 64 px on the confirm card. Uses the Telegram photo if available, otherwise initials on `--avatar-bg` with `--brand-text` text. |
 | **UserRow** | Avatar + `@username` (headline) + caption line (display name, or "Paid 6 times" / "New"). Whole row tappable, 64 px tall. |
 | **AmountDisplay** | `$` prefix at 60% size, `--text-muted`; value in `--type-amount-xl`, tabular-nums. Max 2 decimals. Shakes (6 px, 3×, 240 ms) + error haptic when the input is invalid. |
 | **Keypad** | 3×4 grid (1–9, `.`, 0, ⌫), keys 64 px tall, `--type-amount-l` digits, light haptic per key. Use our own keypad, not the system keyboard, for amounts. |
@@ -147,6 +148,10 @@ Navigation: Home is the root. Everything else pushes on top and uses Telegram Ba
 - If the typed handle has no Pay System account: a row "Send to @newfriend on Telegram", caption "They'll get a link to claim it", with a brand-soft avatar showing a link icon.
 - "Did you mean": if the input is within edit distance 1–2 of a past recipient, show a warning Banner "Did you mean @alex? You've paid them 6 times." Tapping it selects @alex.
 - Tapping a row → S5.
+- **Wallet address (v1.1):** the search field placeholder becomes "Username, @handle or wallet address". Two icon buttons sit inside the field's right edge: **Paste** (clipboard) and **Scan** (Telegram `showScanQrPopup`; accepts a raw address or a `solana:<address>` URI).
+  - When the input looks like an address (base58, 32–44 characters), show a single row: generic wallet icon avatar + "Send to wallet" (headline) + Fingerprint `7xKX…9fQz` (caption).
+  - If that address belongs to a registered user, show their normal UserRow instead, with caption "Wallet of @alex".
+  - Invalid: helper line (danger-text) "That's not a valid Solana address". Off-curve: "This address can't receive payments". Own wallet: "That's your own wallet".
 
 ### S5 — Send: amount
 - Recipient pill at the top (avatar + @name).
@@ -162,6 +167,7 @@ Navigation: Home is the root. Everything else pushes on top and uses Telegram Ba
   1. Warning: "First time paying @alex2" (if never paid before)
   2. Warning: "This account was created today" (if age < 24 h)
   3. Info: "@newfriend isn't on Pay System yet. They have 7 days to claim, or you get it back." (escrow case)
+- **Wallet-address variant (v1.1):** the card shows the wallet icon avatar, the title "Wallet address", and the FULL address in `--type-mono`, broken into groups of 4 characters over 3 lines so it can be checked by eye. No account age line. A single warning banner: "Double-check this address — payments can't be undone." There are no first-time or new-account banners for raw addresses.
 - Fee row: "Network fee — Free" (success text).
 - MainButton: **Send $10.00** → progress "Sending…" (MainButton progress spinner) → S8.
 - Failure: danger Banner with a specific reason plus a **Try again** MainButton. Never lose the entered amount.
@@ -189,6 +195,55 @@ Navigation: Home is the root. Everything else pushes on top and uses Telegram Ba
 - Amount, counterparty UserRow, status pill, timestamp, note, fee "Free", explorer link.
 - For a pending escrow: "Expires in 6 days" + a disabled **Refund** button. After expiry the button is enabled.
 
+## 5b. Tickets (v1.1)
+
+Entry point: on Home, below the Send/Receive pair and above any claim banner, add a full-width Card row with a ticket icon, "Tickets" (headline) and the caption "2 upcoming" or "Find events", plus a chevron. → S11.
+
+### S11 — Events
+- Title "Tickets". Segmented control: **Events** | **My tickets** (My tickets badge = count).
+- Events: EventCards. Each card has a gradient-free colour block (brand-soft) with a date badge ("NOV 7"), event name (headline), venue · time (caption), price "$25" on the right, and a "Sold out" or "12 left" pill when fewer than 20 remain. Empty: "No events yet."
+- My tickets: TicketRows (event name, date, ticket number "#014", status pill: `Upcoming` / `Listed $27.50` / `Used`). Empty: "No tickets yet. Find an event."
+
+### S12 — Event detail
+- Large colour block header with the date badge, event name (title), venue, date and time.
+- Info rows: "Price $25.00", "Resale cap $27.50 (110%)" with an info icon. Tapping the icon opens a sheet: "To stop scalping, tickets can only be resold for up to 110% of face value."
+- Resale section (if listings exist): "Resale from $26.00" with up to 3 rows (seller @name, price, Buy), cheapest first.
+- MainButton: **Buy ticket · $25.00** → confirm sheet (event, price, "Network fee — Free", balance after) → progress "Buying…" → S8 variant "You're going to Solana Night Live" + caption "Ticket #014 · Settled in 0.8 s".
+- Not enough balance: MainButton disabled + danger-text caption "Not enough balance". Sold out: MainButton hidden, banner "Sold out — check resale below".
+
+### S13 — My ticket
+- A ticket-shaped card: notched sides (radial-gradient cut-outs), event name, date, venue, "#014", and the holder "@sakz".
+- **QR code** (≥ 200 px, white quiet zone even in dark mode). Caption "Refreshes every 30 s · Screenshots won't work" with a small countdown ring.
+- Actions under the card: **Gift** and **Resell** (brand-soft buttons, like Receive). Disabled states show their reason in a caption: "Already gifted once", "Transfers lock 24 h before the show", "Listed for $27.50 — Cancel listing".
+- Used ticket: QR replaced by a muted "Checked in · Nov 7, 8:14 PM".
+- No MainButton on this screen. The QR is the point.
+
+### S14 — Gift ticket
+- Reuses S4's recipient picker (registered users only; unregistered handles show "@newfriend needs a Pay System account first").
+- Confirm: recipient card + ticket summary + warning banner "You can only gift this ticket once". MainButton **Gift ticket** → S8 variant "Ticket sent to @newfriend".
+
+### S15 — Resell
+- Price entry reuses the keypad (S5). Under the amount: "Max $27.50" (muted). Typing above the cap shakes the amount, gives an error haptic, and the caption turns danger-text "Max resale price is $27.50". The MainButton is disabled.
+- MainButton **List for $26.00** → S13 with the pill "Listed $26.00" and a "Cancel listing" link.
+
+### S16 — Check-in (organizer only)
+- Shown on S12 to the event's organizer as an extra MainButton: **Scan tickets**. It opens Telegram `showScanQrPopup` ("Scan a ticket").
+- Result as a full-screen state, auto-closing after 2 s and then reopening the scanner:
+  - **Admit:** `--success` full background, big check, "Admit", "@newfriend · #014", success haptic.
+  - **Already used:** `--danger` background, "Already used", "Checked in at 8:14 PM", error haptic.
+  - **Not valid:** `--danger` background, "Not valid", with the reason ("Wrong event" / "Expired code" / "Not the owner"), error haptic.
+- Counter at the top: "Checked in 37 / 120".
+
+### Ticket copy
+| Case | Copy |
+|---|---|
+| Over the cap | "Max resale price is $27.50" |
+| Second gift | "Already gifted once" |
+| Lock window | "Transfers lock 24 h before the show" |
+| Recipient unregistered | "@newfriend needs a Pay System account first" |
+| Sold out | "Sold out — check resale below" |
+| Bot DM on gift | "🎟 @sakz sent you a ticket to **Solana Night Live** (Nov 7)" + button **View ticket** |
+
 ## 6. UX copy
 
 ### 6.1 Voice
@@ -203,7 +258,10 @@ Short, friendly and specific, written in the second person. Say "dollars" or "$"
 | Reserved | "That name is reserved" |
 | One per account | "You already have @sakz" |
 | Not enough balance | "Not enough balance" |
-| Network error | "Couldn't reach Solana. Your money hasn't moved — try again." |
+| Network error (we know it didn't land) | "Payment didn't go through. Your money hasn't moved — try again." |
+| Network error (unknown yet) | Banner info: "Checking your payment…" with a spinner. No Try again until it resolves. |
+| Turned out it did land | Go straight to S8 Success. Don't show an error. |
+| Resale listing changed | "This listing just changed. Check the new price and try again." |
 | Claim expired | "This payment expired and was returned to @sakz." |
 | Claim wrong user | "This payment was sent to @newfriend. You're signed in as @other." |
 

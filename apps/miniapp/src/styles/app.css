@@ -818,3 +818,9 @@ p {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
+
+/* Short viewports (< 600 px tall): smaller keypad keys, still ≥ 44 px touch targets. */
+@media (max-height: 599px) {
+  .keypad__key { height: 56px; }
+  .amount { gap: var(--s-2); }
+}

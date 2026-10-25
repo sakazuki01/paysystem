@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
@@ -45,12 +45,19 @@ describe("S7 claim", () => {
     expect(mainButton()).not.toBeVisible();
   });
 
+  it("unknown link", async () => {
+    openWith("?startapp=claim_nope");
+    expect(await screen.findByText("This payment link isn't valid anymore.")).toBeInTheDocument();
+    expect(screen.getByText("If you think this is wrong, ask the sender to resend it.")).toBeInTheDocument();
+    expect(mainButton()).not.toBeVisible();
+  });
+
   it("opens from the Home banner", async () => {
     const { user } = openWith("");
-    await user.click(await screen.findByRole("button", { name: "@alex sent you $10. Claim" }));
-    expect(await screen.findByText("@alex sent you")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "@maya sent you $15. Claim" }));
+    expect(await screen.findByText("@maya sent you")).toBeInTheDocument();
     await user.click(mainButton());
-    expect(await screen.findByText("You received $10.00 from @alex")).toBeInTheDocument();
+    expect(await screen.findByText("You received $15.00 from @maya")).toBeInTheDocument();
   });
 });
 
@@ -63,6 +70,13 @@ describe("S9 receive", () => {
     expect(screen.getByText("Wallet address")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Wallet address 7xKX…9fQz/ })).toBeInTheDocument();
     expect(mainButton()).toHaveTextContent("Share");
+
+    const open = vi.spyOn(window.Telegram!.WebApp, "openTelegramLink").mockImplementation(() => {});
+    await user.click(mainButton());
+    const url = new URL(open.mock.calls[0]![0]);
+    expect(url.origin + url.pathname).toBe("https://t.me/share/url");
+    expect(url.searchParams.get("url")).toBe("https://t.me/PaySystemBot/app?startapp=pay_sakz");
+    expect(url.searchParams.get("text")).toBe("Pay me on Pay System: @sakz");
   });
 });
 
@@ -82,7 +96,8 @@ describe("S10 activity detail", () => {
     expect(await screen.findByText("Refundable")).toBeInTheDocument();
     expect(mainButton()).toBeEnabled();
     await user.click(mainButton());
-    expect(await screen.findByText("$5.00 is back in your balance")).toBeInTheDocument();
+    expect(await screen.findByText("Refunded $5.00")).toBeInTheDocument();
+    expect(screen.getByText("It's back in your balance")).toBeInTheDocument();
     await user.click(mainButton());
     expect(await screen.findByText("$129.50")).toBeInTheDocument();
   });
@@ -92,6 +107,9 @@ describe("S10 activity detail", () => {
     await user.click(await screen.findByRole("button", { name: /Received 10 dollars from @alex/ }));
     expect(await screen.findByText("+$10.00")).toBeInTheDocument();
     expect(screen.getByText("Pizza night")).toBeInTheDocument();
+    for (const label of ["Status", "Date", "Note", "Fee", "Transaction"]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
     expect(screen.getByText("Free")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /View on explorer/ })).toBeInTheDocument();
     expect(mainButton()).not.toBeVisible();

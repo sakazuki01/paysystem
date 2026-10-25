@@ -8,8 +8,7 @@ import { haptic, tg, useMainButton } from "../telegram/telegram";
 function headline({ kind, amountCents, counterparty }: SuccessInfo): string {
   const amount = formatUsd(amountCents);
   if (kind === "received") return `You received ${amount} from @${counterparty}`;
-  // COPY-TBD: refund success isn't in spec §5/§6; asked the design lead.
-  if (kind === "refunded") return `${amount} is back in your balance`;
+  if (kind === "refunded") return `Refunded ${amount}`;
   return `Sent ${amount} to @${counterparty}`;
 }
 
@@ -35,6 +34,8 @@ export function Success({ info }: { info: SuccessInfo }) {
         <Check size={44} strokeWidth={3} />
       </div>
       <h1 className="title success__title" aria-live="polite">{headline(info)}</h1>
+      {info.kind === "refunded" && <p className="body caption--muted">It's back in your balance</p>}
+      {info.escrow && <p className="body caption--muted">They have 7 days to claim it</p>}
       <p className="caption caption--muted tabular">{settledCaption(info.settleMs)}</p>
       <button type="button" className="link-button" onClick={() => tg().openLink(explorerTxUrl(info.signature))}>
         View on explorer

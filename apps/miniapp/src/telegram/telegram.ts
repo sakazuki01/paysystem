@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { installDevShim, isRealTelegram } from "./devShim";
 import { useOnline } from "../state/online";
 import type { ThemeParams, WebApp } from "./types";
@@ -79,7 +79,8 @@ export function useMainButton({ text, onClick, disabled = false, progress = fals
   const handler = useRef(onClick);
   handler.current = onClick;
 
-  useEffect(() => {
+  // Layout effects: the Telegram button changes in the same commit as the screen, never a frame later.
+  useLayoutEffect(() => {
     const mb = tg().MainButton;
     const cb = () => handler.current();
     mb.onClick(cb);
@@ -90,7 +91,7 @@ export function useMainButton({ text, onClick, disabled = false, progress = fals
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const mb = tg().MainButton;
     mb.setParams({
       text,

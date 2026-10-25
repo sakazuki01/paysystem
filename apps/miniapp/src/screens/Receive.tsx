@@ -15,8 +15,8 @@ export function Receive() {
     text: "Share",
     onClick: () => {
       haptic.tap();
-      // COPY-TBD: share message text isn't in spec §6; sharing the bare link until the lead adds copy.
-      tg().openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}`);
+      const text = `Pay me on Pay System: @${username}`;
+      tg().openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
     },
   });
 

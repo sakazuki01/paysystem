@@ -101,7 +101,7 @@ export function PickUsername({ afterClaim = false }: { afterClaim?: boolean }) {
   }
 
   useMainButton({
-    text: claiming ? "Claiming…" : status.state === "available" ? `Claim @${status.name}` : value ? `Claim @${value}` : "Claim",
+    text: claiming ? "Claiming…" : status.state === "available" ? `Claim @${status.name}` : "Claim",
     progress: claiming,
     disabled: status.state !== "available",
     onClick: claim,

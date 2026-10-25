@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import type { Me, PayApi } from "./api/PayApi";
 import { Banner, Logo, Skeleton } from "./components/primitives";
 import { NETWORK_ERROR } from "./lib/errors";
@@ -94,7 +94,7 @@ function Shell() {
   const route = nav.current;
   const canGoBack = nav.stack.length > 1 && route.name !== "success";
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const back = tg().BackButton;
     if (!canGoBack) {
       back.hide();

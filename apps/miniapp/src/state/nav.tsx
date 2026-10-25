@@ -7,6 +7,8 @@ export interface SuccessInfo {
   counterparty: string;
   settleMs: number;
   signature: string;
+  /** Sent to someone not on Pay System yet (shows the 7-day claim caption). */
+  escrow?: boolean;
   /** Where Done goes. Default: home. */
   next?: "home" | "username";
 }

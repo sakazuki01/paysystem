@@ -179,6 +179,18 @@ User types name
   → alex gets a bot DM: "Sakz sent you $5"
 ```
 
+### 7.1b Send to a wallet address (v1.1)
+For paying any Solana wallet, such as an exchange or Phantom:
+```
+User pastes or scans an address in S4
+  → client validates: base58, decodes to 32 bytes, ON the ed25519 curve
+      (off-curve = program address → reject "This address can't receive payments")
+  → if the address is the owner of a UsernameRecord → treat it as that @username (normal flow)
+  → if it's my own address → reject "That's your own wallet"
+  → plain USDC transfer; the fee payer creates the recipient's USDC account if it's missing
+```
+No escrow: the address already exists, so the money arrives instantly.
+
 ### 7.2 Send to someone who isn't registered (escrow)
 
 ```
@@ -208,6 +220,41 @@ User types name
 - After `expires_at`, the **sender** can call `refund`, and the USDC goes back to them.
 - This limits the risk of a handle changing owner before the money is claimed.
 
+## 7.5 Double-spend and duplicate-payment protection (v1.2)
+
+Solana itself stops anyone spending the same dollars twice: a token account can't go below zero, and the same signed transaction can't land twice. **Our** risk is different. The app can create **two different payments** when the user meant one, or a buyer can be charged a price they didn't agree to. Every path is closed at the layer that can actually guarantee it.
+
+### 7.5.1 Payment intents: every send is exactly-once ON-CHAIN
+- When the Confirm screen opens, the client creates a **payment intent ID** (16 random bytes) and keeps it for the life of that screen, including across "Try again". A new intent ID only appears when the user starts a new payment.
+- All sends go through our program, never a bare SPL transfer:
+  - `pay(intent_id, amount)`: transfers USDC sender → recipient and **creates a `Receipt` PDA** with seeds `[b"receipt", sender, intent_id]` (sender, recipient, amount, created_at). A second transaction with the same intent fails at `init`, so a duplicate payment **is impossible on-chain**, however many times the client submits.
+  - `send_to_escrow(intent_id, handle_hash, amount)`: the escrow PDA seed uses `intent_id` instead of a separate nonce, so the same guarantee holds for escrow.
+- The fee payer covers the receipt rent (~0.001 SOL). Receipts are kept for the hackathon; a future `close_receipt` can reclaim the rent after 24 h, which is far past the ~1-minute window in which an old signed transaction can still land.
+
+### 7.5.2 Retries never re-sign blindly
+- **Network error ≠ not sent.** After a timeout or dropped connection, the client must **not** say "your money hasn't moved". It first checks whether `Receipt[sender, intent_id]` exists:
+  - exists → the payment went through; show Success (with the receipt's real time).
+  - doesn't exist and the original transaction's blockhash has expired → it definitely didn't land; offer **Try again**, which builds a new transaction **with the same intent ID** (so even a late landing of the first one can't double up).
+  - can't tell yet → show "Checking your payment…" and poll every 2 s, for up to ~90 s (the blockhash lifetime).
+- The backend fee-payer endpoint is **idempotent by intent ID**: the same intent gets back the same signed transaction (same signature) while it's still valid, never a second one.
+
+### 7.5.3 Single-flight UI
+- Every money-moving button (Send, Claim, Refund, Buy, Buy resale, Gift, List) uses a **synchronous in-flight lock** (a ref, set before any `await`), so double taps and Telegram MainButton double events trigger at most one request. React state alone is too slow (the same class of bug as the keypad stale read).
+
+### 7.5.4 Escrow: claim vs refund vs claim
+- `claim_escrow` and `refund_escrow` both **close** the escrow account, so whichever lands first wins and the other fails: you can't claim twice, or claim and refund.
+- They're also separated in time: claim only before `expires_at`, refund only at or after it.
+- An escrow PDA can't be re-created after it closes, because the seed includes a fresh intent ID and the same intent never repeats. Stale claim links can't revive.
+
+### 7.5.5 Tickets
+- `buy_ticket(intent_id)`: a ticket purchase creates a Receipt too, so a double tap can't buy two tickets.
+- `buy_listed(expected_seller, expected_price)`: the program requires that the listing's current owner and price **equal** what the buyer saw. That stops a seller from raising the price (still under the cap) or relisting in the moment between the buyer tapping Buy and the transaction landing. If two buyers race for the same listing, the first wins and the second fails `NotListed`, with nothing charged.
+- `gift_ticket`, `list_ticket` and `buy_listed` are mutually exclusive by state: you can't gift a listed ticket, and buying clears the listing. A ticket can't be both sold and gifted.
+- `check_in` sets `checked_in` once, and a second scan fails `AlreadyCheckedIn`. QR payloads expire after 30 s, and the scanner checks that the signer is the **current** on-chain owner, so a screenshot of a ticket that has since been gifted or resold won't work.
+
+### 7.5.6 Errors (new)
+`DuplicatePayment` (receipt exists, surfaced as success rather than an error), `ListingChanged` (seller or price mismatch on `buy_listed`).
+
 ## 8. Send-time safety (UX)
 
 Registration rules aren't enough on their own, so the send screen adds:
@@ -224,19 +271,48 @@ Registration rules aren't enough on their own, so the send screen adds:
 - The backend also pays rent for username and escrow accounts. Escrow rent is refunded when the escrow closes.
 - Abuse limits: per-user rate limits and one sponsored registration per Telegram ID.
 
-## 10. Tickets (stretch)
+## 10. Concert tickets (v1.1, now in scope)
 
-- An organizer creates an event, and each ticket is a Token-2022 token (supply 1).
-- Buy with USDC, then send to `@friend` using the same username and escrow logic.
-- A **transfer hook** enforces the resale rules: a maximum resale price (for example, face value + 10%) and optional no-transfer within 24 hours of the event.
-- At the door, a QR code signed by the holder's wallet proves ownership and can't be faked.
+### 10.1 Design decision: tickets are program accounts, not tokens
+The original idea was Token-2022 with a transfer hook enforcing a resale cap. **It can't work.** A token transfer carries no price, so a hook can't tell a $25 resale from a $500 one. Instead, each ticket is an account owned by our program, and the **only** ways to move one are the program's own instructions. That makes every rule enforceable on-chain:
+- **Can't be faked:** a ticket exists only if the program created it when a buyer paid the organizer.
+- **Price-capped resale:** a resale happens inside the program, which sees the price and rejects anything above the cap.
+- **Gifting is limited:** one free gift per ticket, and no gifts or resales in the final 24 h before the show. This closes the "sell for cash off-chain, gift on-chain" loophole as far as is practical.
+
+Trade-off (say it in the pitch): the tickets don't show up as NFTs in Phantom. They live in Pay System. A future version could mirror them as non-transferable NFTs for display.
+
+### 10.2 Accounts
+- `Event` PDA, seeds `[b"event", organizer, event_id: u64 LE]`: organizer, name (max 48), venue (max 48), starts_at, price (USDC base units), max_resale_bps (e.g. 11000 = 110% of face value), supply, sold, lock_secs (default 86 400), bump.
+- `Ticket` PDA, seeds `[b"ticket", event, ticket_no: u32 LE]`: event, owner, ticket_no, face_price, listed_price (0 = not listed), gifts_used (u8), checked_in (bool), bump.
+
+### 10.3 Instructions
+| Instruction | Who signs | Rules |
+|---|---|---|
+| `create_event(event_id, name, venue, starts_at, price, max_resale_bps, supply, lock_secs)` | organizer + authority (fees) | price > 0; 10000 ≤ max_resale_bps ≤ 20000; supply 1–10 000; starts_at in the future |
+| `buy_ticket()` | buyer + authority | sold < supply; before starts_at; USDC buyer → organizer; creates Ticket #sold, sold += 1 |
+| `gift_ticket(to)` | owner + authority | `to` must have a UsernameRecord (registered users only); gifts_used == 0; not listed; not checked in; now < starts_at − lock_secs |
+| `list_ticket(price)` | owner + authority | price ≤ face_price × max_resale_bps / 10000 (error `PriceAboveCap`); not checked in; outside the lock window |
+| `cancel_listing()` | owner + authority | listed_price → 0 |
+| `buy_listed()` | buyer + authority | ticket is listed; outside the lock window; USDC buyer → seller at listed_price; owner = buyer; listed_price → 0 |
+| `check_in()` | organizer + authority | not already checked in; within ±12 h of starts_at |
+
+There's no platform fee. All USDC moves go directly between users' token accounts.
+
+### 10.4 Door check-in
+1. The holder opens **My ticket**. The Mini App shows a QR code of `{ticket, ts}` signed by the holder's wallet, refreshed every 30 s so screenshots go stale.
+2. The organizer scans it with Telegram's built-in QR scanner (`showScanQrPopup`).
+3. The scanner checks that the signature matches the ticket's on-chain owner and that `ts` is fresh, then calls `check_in`. It shows a green "Admit" screen or a red "Already used" / "Not valid" screen.
+
+### 10.5 Demo
+@sakz buys a ticket for "Solana Night Live" at $25 (cap 110% = $27.50). They try to resell it for $40 and get "Max resale price is $27.50". They gift it to @newfriend instead. The organizer scans @newfriend's QR → Admit. Scanning it again → "Already used".
 
 ## 11. Program instructions (Anchor)
 
 | Instruction | Purpose |
 |---|---|
 | `register_username(name)` | Normalize, compute skeleton, init `UsernameRecord` + `SkeletonRecord` |
-| `send_to_escrow(handle_hash, amount, nonce)` | Lock USDC in an escrow PDA for an unregistered recipient |
+| `pay(intent_id, amount)` | USDC sender → recipient plus a `Receipt` PDA, for exactly-once payments (§7.5) |
+| `send_to_escrow(intent_id, handle_hash, amount)` | Lock USDC in an escrow PDA for an unregistered recipient (the intent ID replaces the nonce) |
 | `claim_escrow(attestation)` | Verify backend Ed25519 attestation, release USDC to the claimer |
 | `refund_escrow()` | Sender reclaims after expiry |
 | *(stretch)* `create_event`, `buy_ticket`, transfer hook | Tickets |

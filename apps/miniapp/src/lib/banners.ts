@@ -17,7 +17,8 @@ export interface SafetyBanner {
 
 export function selectSafetyBanners(r: SafetyInput, now: number = Date.now()): SafetyBanner[] {
   const out: SafetyBanner[] = [];
-  if (r.timesPaid === 0) {
+  // Warnings are about registered accounts; an escrow recipient gets only the info banner.
+  if (r.exists && r.timesPaid === 0) {
     out.push({ id: "first-time", variant: "warning", text: `First time paying @${r.handle}` });
   }
   if (r.exists && r.createdAt !== undefined && now - r.createdAt < DAY_MS) {

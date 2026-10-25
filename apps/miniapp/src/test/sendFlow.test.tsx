@@ -50,7 +50,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     expect(await screen.findByText("$114.50")).toBeInTheDocument();
   });
 
-  it("sends to an unregistered handle through escrow with both S6 banners", async () => {
+  it("sends to an unregistered handle through escrow with only the escrow banner", async () => {
     const { user } = setup();
     await screen.findByText("$124.50");
     await user.click(screen.getByRole("button", { name: "Send" }));
@@ -59,12 +59,13 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     await user.click(screen.getByRole("button", { name: "$5" }));
     await user.click(mainButton());
 
-    expect(await screen.findByText("First time paying @newfriend")).toBeInTheDocument();
     expect(
-      screen.getByText("@newfriend isn't on Pay System yet. They have 7 days to claim, or you get it back."),
+      await screen.findByText("@newfriend isn't on Pay System yet. They have 7 days to claim, or you get it back."),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/First time paying/)).not.toBeInTheDocument();
     await user.click(mainButton());
     expect(await screen.findByText("Sent $5.00 to @newfriend")).toBeInTheDocument();
+    expect(screen.getByText("They have 7 days to claim it")).toBeInTheDocument();
   });
 
   it("warns 'Did you mean @alex?' for a near-miss and selects alex on tap", async () => {
@@ -106,6 +107,31 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     expect(screen.getByText("$7.00")).toBeInTheDocument();
     await user.click(mainButton());
     expect(await screen.findByText("Sent $7.00 to @alex")).toBeInTheDocument();
+  });
+
+  it("a failure banner replaces the safety banners until Try again", async () => {
+    const { api, user } = setup({ latencyMs: 150 });
+    await screen.findByText("$124.50");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex2");
+    await user.click(await screen.findByRole("button", { name: /^@alex2\b/ }));
+    await screen.findByRole("group", { name: "Keypad" });
+    await tapKeys(user, "1");
+    await user.click(mainButton());
+    await screen.findByText("First time paying @alex2");
+
+    api.failNext("network");
+    await user.click(mainButton());
+    expect(
+      await screen.findByText("Couldn't reach Solana. Your money hasn't moved — try again."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("First time paying @alex2")).not.toBeInTheDocument();
+    expect(screen.queryByText("This account was created today")).not.toBeInTheDocument();
+
+    await user.click(mainButton()); // Try again: failure clears, safety banners return while sending
+    expect(screen.queryByText(/Couldn't reach Solana/)).not.toBeInTheDocument();
+    expect(screen.getByText("First time paying @alex2")).toBeInTheDocument();
+    expect(await screen.findByText("Sent $1.00 to @alex2")).toBeInTheDocument();
   });
 });
 

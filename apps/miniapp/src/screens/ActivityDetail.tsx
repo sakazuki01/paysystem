@@ -71,7 +71,6 @@ export function ActivityDetail({ id }: { id: string }) {
         <span className={`amount-xl ${out ? "" : "amount-signed--in"}`} aria-label={`${out ? "Sent" : "Received"} ${amountAria(a.amountCents)}`}>
           {signedUsd(a.amountCents, a.direction)}
         </span>
-        <StatusPill status={a.status} />
         {a.status === "pending" && a.expiresAt && (
           <span className="caption caption--muted">{expiresInCaption(a.expiresAt)}</span>
         )}
@@ -87,8 +86,11 @@ export function ActivityDetail({ id }: { id: string }) {
 
       {error && <Banner variant="danger">{error}</Banner>}
 
-      {/* COPY-TBD: "Date" / "Note" labels aren't in spec §5 S10; asked the design lead. */}
       <div className="detail-list">
+        <div className="detail-row">
+          <span className="detail-row__label">Status</span>
+          <StatusPill status={a.status} />
+        </div>
         <div className="detail-row">
           <span className="detail-row__label">Date</span>
           <span>{fullTime(a.createdAt)}</span>
@@ -100,20 +102,22 @@ export function ActivityDetail({ id }: { id: string }) {
           </div>
         )}
         <div className="detail-row">
-          <span className="detail-row__label">Network fee</span>
+          <span className="detail-row__label">Fee</span>
           <span className="fee-row__value">
             <Check size={16} strokeWidth={2} aria-hidden="true" />
             Free
           </span>
         </div>
+        {a.signature && (
+          <div className="detail-row">
+            <span className="detail-row__label">Transaction</span>
+            <button type="button" className="link-button detail__explorer" onClick={() => tg().openLink(explorerTxUrl(a.signature!))}>
+              View on explorer
+              <ExternalLink size={16} strokeWidth={2} aria-hidden="true" />
+            </button>
+          </div>
+        )}
       </div>
-
-      {a.signature && (
-        <button type="button" className="link-button detail__explorer" onClick={() => tg().openLink(explorerTxUrl(a.signature!))}>
-          View on explorer
-          <ExternalLink size={16} strokeWidth={2} aria-hidden="true" />
-        </button>
-      )}
     </Screen>
   );
 }

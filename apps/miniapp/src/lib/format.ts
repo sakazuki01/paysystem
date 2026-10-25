@@ -1,3 +1,5 @@
+import { plural } from "./plural";
+
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
 export const formatUsd = (cents: number) => usd.format(cents / 100);
@@ -23,8 +25,9 @@ const monthYear = new Intl.DateTimeFormat("en-US", { month: "short", year: "nume
 export const sinceCaption = (createdAt: number) => `On Pay System since ${monthYear.format(createdAt)}`;
 
 export function expiresInCaption(expiresAt: number, now: number = Date.now()): string {
-  const days = Math.max(1, Math.ceil((expiresAt - now) / 86_400_000));
-  return `Expires in ${days} ${days === 1 ? "day" : "days"}`;
+  const left = expiresAt - now;
+  if (left < 86_400_000) return "Expires today";
+  return `Expires in ${plural(Math.max(1, Math.round(left / 86_400_000)), "day")}`;
 }
 
 const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" });

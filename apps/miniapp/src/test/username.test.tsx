@@ -34,6 +34,7 @@ describe("S1 → S2 pick username", () => {
     await user.type(input, "5akz");
     expect(await screen.findByText("Too similar to @sakz — pick something more distinct")).toBeInTheDocument();
     expect(mainButton()).toBeDisabled();
+    expect(mainButton()).toHaveTextContent(/^Claim$/);
   });
 
   it.each([

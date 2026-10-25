@@ -6,12 +6,12 @@ import { Avatar, Banner } from "../components/primitives";
 import { UserRow, UserSummaryRow } from "../components/rows";
 import { didYouMean } from "../lib/didYouMean";
 import { NETWORK_ERROR } from "../lib/errors";
+import { plural } from "../lib/plural";
 import { useApp, useAsync } from "../state/app";
 import { useNav } from "../state/nav";
 import { useToast } from "../state/toast";
 import { RowSkeletons } from "./Home";
 
-const times = (n: number) => `${n} ${n === 1 ? "time" : "times"}`;
 const HANDLE_RE = /^[a-z0-9_]{3,32}$/;
 
 function useDebounced<T>(value: T, ms: number): T {
@@ -77,9 +77,9 @@ export function Recipient() {
         <Banner
           variant="warning"
           onClick={() => choose(suggestion.username)}
-          label={`Did you mean @${suggestion.username}? You've paid them ${times(suggestion.timesPaid)}.`}
+          label={`Did you mean @${suggestion.username}? You've paid them ${plural(suggestion.timesPaid, "time")}.`}
         >
-          Did you mean <strong>@{suggestion.username}</strong>? You've paid them {times(suggestion.timesPaid)}.
+          Did you mean <strong>@{suggestion.username}</strong>? You've paid them {plural(suggestion.timesPaid, "time")}.
         </Banner>
       )}
 

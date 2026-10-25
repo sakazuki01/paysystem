@@ -127,7 +127,6 @@ const PILL: Record<ActivityStatus, { label: string; tone: string }> = {
   received: { label: "Received", tone: "success" },
   pending: { label: "Pending", tone: "pending" },
   refundable: { label: "Refundable", tone: "warning" },
-  // COPY-TBD: "Refunded" is not in spec §4; asked the design lead.
   refunded: { label: "Refunded", tone: "muted" },
   failed: { label: "Failed", tone: "danger" },
 };

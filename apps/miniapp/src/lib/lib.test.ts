@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyKey, amountStatus, rawToCents, MAX_RAW_INT_DIGITS } from "./amount";
 import { selectSafetyBanners } from "./banners";
 import { didYouMean, editDistance } from "./didYouMean";
+import { plural } from "./plural";
 import { formatUsd, signedUsd, amountAria, fingerprint, settledCaption, sinceCaption, expiresInCaption } from "./format";
 
 describe("amount entry rules (spec §4 AmountDisplay / Keypad)", () => {
@@ -64,10 +65,10 @@ describe("S6 safety banners (max 2, spec order)", () => {
     expect(b.map((x) => x.text)).toEqual(["First time paying @alex2", "This account was created today"]);
   });
 
-  it("escrow recipient: first-time warning + escrow info", () => {
+  it("escrow recipient: only the escrow info (warnings are for registered recipients)", () => {
     const b = selectSafetyBanners({ handle: "newfriend", exists: false, timesPaid: 0 }, now);
-    expect(b.map((x) => x.variant)).toEqual(["warning", "info"]);
-    expect(b[1]!.text).toBe(
+    expect(b.map((x) => x.variant)).toEqual(["info"]);
+    expect(b[0]!.text).toBe(
       "@newfriend isn't on Pay System yet. They have 7 days to claim, or you get it back.",
     );
   });
@@ -122,5 +123,16 @@ describe("format", () => {
     expect(sinceCaption(Date.UTC(2026, 9, 3))).toBe("On Pay System since Oct 2026");
     const now = Date.UTC(2026, 9, 25);
     expect(expiresInCaption(now + 6 * 24 * 3600_000 - 1000, now)).toBe("Expires in 6 days");
+    expect(expiresInCaption(now + 30 * 3600_000, now)).toBe("Expires in 1 day");
+    expect(expiresInCaption(now + 5 * 3600_000, now)).toBe("Expires today");
+  });
+});
+
+describe("plural", () => {
+  it("singular / plural", () => {
+    expect(plural(1, "time")).toBe("1 time");
+    expect(plural(6, "time")).toBe("6 times");
+    expect(plural(0, "time")).toBe("0 times");
+    expect(plural(1, "day")).toBe("1 day");
   });
 });

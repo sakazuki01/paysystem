@@ -37,6 +37,7 @@ export function Confirm({ recipient }: { recipient: RecipientInfo }) {
             counterparty: recipient.handle,
             settleMs: res.settleMs,
             signature: res.signature,
+            escrow: !!res.escrowId,
           },
         },
       ]);
@@ -78,12 +79,16 @@ export function Confirm({ recipient }: { recipient: RecipientInfo }) {
         {draft.note && <span className="body caption--muted">{draft.note}</span>}
       </div>
 
-      {error && <Banner variant="danger">{error}</Banner>}
-      {banners.map((b) => (
-        <Banner key={b.id} variant={b.variant}>
-          {b.text}
-        </Banner>
-      ))}
+      {/* Max 2 banners, always: a failure replaces the safety banners until Try again. */}
+      {error ? (
+        <Banner variant="danger">{error}</Banner>
+      ) : (
+        banners.map((b) => (
+          <Banner key={b.id} variant={b.variant}>
+            {b.text}
+          </Banner>
+        ))
+      )}
 
       <div className="fee-row">
         <span>Network fee</span>

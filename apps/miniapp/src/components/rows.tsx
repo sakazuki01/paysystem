@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Activity, UserSummary } from "../api/PayApi";
 import { amountAria, shortTime, signedUsd } from "../lib/format";
+import { plural } from "../lib/plural";
 import { haptic } from "../telegram/telegram";
 import { Avatar, StatusPill } from "./primitives";
 
@@ -8,7 +9,7 @@ const DAY_MS = 86_400_000;
 
 /** UserRow caption: "Paid 6 times", else "New" for accounts under a day old, else the display name. */
 export function userCaption(u: Pick<UserSummary, "timesPaid" | "createdAt" | "displayName">, now = Date.now()) {
-  if (u.timesPaid > 0) return `Paid ${u.timesPaid} ${u.timesPaid === 1 ? "time" : "times"}`;
+  if (u.timesPaid > 0) return `Paid ${plural(u.timesPaid, "time")}`;
   if (now - u.createdAt < DAY_MS) return "New";
   return u.displayName;
 }

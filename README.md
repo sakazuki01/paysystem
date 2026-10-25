@@ -74,4 +74,6 @@ Outside Telegram, a dev shim (`src/telegram/devShim.ts`) fakes `themeParams`, th
 
 **Mock seed** (`src/api/MockPayApi.ts`): @sakz (you, $124.50), @alex (paid 6 times), @maya, @alex2 (created today, never paid), @newfriend (on Telegram, no account), recent activity, a pending escrow to @newfriend (6 days left), an expired, refundable one to @oldpal, and two incoming escrows to @sakz. Writes take ~900 ms and return a `settleMs` between 700 and 1200. In dev, `window.payApi.failNext("network")` makes the next write fail.
 
+**Design-review screenshots:** with the dev server running, `npm run screenshots -w @pay-system/miniapp` drives a locally installed Chrome/Edge (puppeteer-core, no browser download; override with `BROWSER=`) and writes PNGs to `design/review/`.
+
 **Real API:** implement the `PayApi` interface (`src/api/PayApi.ts`) and swap it in at `src/main.tsx`. Screens only ever talk to `PayApi`.

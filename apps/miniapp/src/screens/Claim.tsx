@@ -117,10 +117,10 @@ export function Claim({ id }: { id: string }) {
       )}
 
       {variant === "none" && (
-        // COPY-TBD: unknown / already-claimed link isn't in spec §6.2; asked the design lead.
         <Card className="claim__muted">
           <Clock size={24} strokeWidth={2} aria-hidden="true" />
           <p className="body">This payment link isn't valid anymore.</p>
+          <p className="caption">If you think this is wrong, ask the sender to resend it.</p>
         </Card>
       )}
     </Screen>

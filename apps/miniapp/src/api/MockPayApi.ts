@@ -379,8 +379,8 @@ export class MockPayApi implements PayApi {
     escrow({ id: "esc_oldpal", sender: "sakz", senderName: "Sakz Kaito", recipientHandle: "oldpal",
       amountCents: 500, note: "Movie", createdAt: now - 8 * DAY_MS, expiresAt: now - DAY_MS, status: "pending" }, true);
     // Incoming to my handle (Home claim banner + S7 normal).
-    escrow({ id: "esc_for_sakz", sender: "alex", senderName: "Alex Rivera", recipientHandle: "sakz",
-      amountCents: 1000, note: "Lunch", createdAt: now - 5 * H, expiresAt: now - 5 * H + ESCROW_TTL_MS,
+    escrow({ id: "esc_for_sakz", sender: "maya", senderName: "Maya Chen", recipientHandle: "sakz",
+      amountCents: 1500, note: "Concert snacks", createdAt: now - 5 * H, expiresAt: now - 5 * H + ESCROW_TTL_MS,
       status: "pending" }, false);
     // Incoming to my handle but expired (S7 expired variant).
     escrow({ id: "esc_expired", sender: "maya", senderName: "Maya Chen", recipientHandle: "sakz",
