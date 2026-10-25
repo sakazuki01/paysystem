@@ -70,7 +70,7 @@ p {
 .caption { font: var(--type-caption); }
 .caption--muted { color: var(--text-muted); }
 .amount-xl { font: var(--type-amount-xl); font-variant-numeric: tabular-nums; }
-.link { color: var(--brand); font-weight: 600; }
+.link { color: var(--brand-text); font-weight: 600; }
 
 /* ---------- screen frame ---------- */
 
@@ -109,7 +109,7 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--brand);
+  color: var(--brand-text);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -138,7 +138,7 @@ p {
 
 .btn:active { transform: scale(0.97); }
 .btn--brand { background: var(--brand); color: var(--on-brand); }
-.btn--soft { background: var(--brand-soft); color: var(--brand); }
+.btn--soft { background: var(--brand-soft); color: var(--brand-text); }
 
 .link-button {
   display: inline-flex;
@@ -146,7 +146,7 @@ p {
   gap: var(--s-1);
   min-height: var(--touch);
   padding: 0 var(--s-2);
-  color: var(--brand);
+  color: var(--brand-text);
   font: var(--type-label);
 }
 
@@ -170,7 +170,7 @@ p {
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 
-.chip.is-selected { background: var(--brand-soft); color: var(--brand); }
+.chip.is-selected { background: var(--brand-soft); color: var(--brand-text); }
 
 /* ---------- Banner ---------- */
 
@@ -200,10 +200,10 @@ p {
 
 .banner--button { min-height: var(--touch); }
 .banner--button:active { opacity: 0.8; }
-.banner--info { background: var(--brand-soft); color: var(--brand); }
-.banner--warning { background: var(--warning-soft); color: var(--warning); }
-.banner--success { background: var(--success-soft); color: var(--success); }
-.banner--danger { background: var(--danger-soft); color: var(--danger); }
+.banner--info { background: var(--brand-soft); color: var(--brand-text); }
+.banner--warning { background: var(--warning-soft); color: var(--warning-text); }
+.banner--success { background: var(--success-soft); color: var(--success-text); }
+.banner--danger { background: var(--danger-soft); color: var(--danger-text); }
 .banner--success .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
 /* ---------- StatusPill ---------- */
@@ -219,11 +219,11 @@ p {
   letter-spacing: 0.02em;
 }
 
-.pill--muted { background: var(--bg-secondary); color: var(--text-muted); }
-.pill--success { background: var(--success-soft); color: var(--success); }
-.pill--pending { background: var(--bg-secondary); color: var(--pending); }
-.pill--warning { background: var(--warning-soft); color: var(--warning); }
-.pill--danger { background: var(--danger-soft); color: var(--danger); }
+.pill--muted { background: var(--bg-secondary); color: var(--text-muted-on-card); }
+.pill--success { background: var(--success-soft); color: var(--success-text); }
+.pill--pending { background: var(--bg-secondary); color: var(--pending-text); }
+.pill--warning { background: var(--warning-soft); color: var(--warning-text); }
+.pill--danger { background: var(--danger-soft); color: var(--danger-text); }
 
 /* ---------- Rows ---------- */
 
@@ -286,7 +286,7 @@ p {
   gap: 2px;
 }
 
-.row__action { font: var(--type-label); color: var(--brand); }
+.row__action { font: var(--type-label); color: var(--brand-text); }
 
 .amount-signed {
   font: var(--type-headline);
@@ -294,7 +294,7 @@ p {
   white-space: nowrap;
 }
 
-.amount-signed--in { color: var(--success); }
+.amount-signed--in { color: var(--success-text); }
 
 /* ---------- Skeleton / Spinner ---------- */
 
@@ -357,6 +357,9 @@ p {
   border-radius: var(--r-sm);
 }
 
+.card .fingerprint,
+.detail-list .fingerprint { color: var(--text-muted-on-card); }
+
 /* ---------- Toast ---------- */
 
 .toast-region {
@@ -406,6 +409,8 @@ p {
 .home__handle { font: var(--type-headline); }
 
 .balance { display: flex; flex-direction: column; gap: var(--s-1); }
+.card .caption--muted,
+.card .body.caption--muted { color: var(--text-muted-on-card); }
 .balance__value { font: var(--type-amount-l); font-variant-numeric: tabular-nums; }
 
 .home__actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
@@ -437,7 +442,7 @@ p {
 
 .search__input::placeholder,
 .note-input::placeholder,
-.username-input__field::placeholder { color: var(--text-muted); }
+.username-input__field::placeholder { color: var(--text-muted-on-card); }
 .search__input::-webkit-search-cancel-button { display: none; }
 
 /* ---------- S5 Amount ---------- */
@@ -502,7 +507,7 @@ p {
   font-variant-numeric: tabular-nums;
 }
 
-.balance-caption.is-danger { color: var(--danger); font-weight: 500; }
+.balance-caption.is-danger { color: var(--danger-text); font-weight: 500; }
 
 .keypad {
   display: grid;
@@ -557,7 +562,7 @@ p {
   color: var(--text-muted);
 }
 
-.fee-row__value { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--success); font-weight: 600; }
+.fee-row__value { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--success-text); font-weight: 600; }
 
 /* ---------- S8 Success ---------- */
 
@@ -646,9 +651,9 @@ p {
 
 .username-input__status svg { flex: none; }
 .username-input__status.is-muted { color: var(--text-muted); }
-.username-input__status.is-success { color: var(--success); }
-.username-input__status.is-danger { color: var(--danger); }
-.username-input__status.is-warning { color: var(--warning); }
+.username-input__status.is-success { color: var(--success-text); }
+.username-input__status.is-danger { color: var(--danger-text); }
+.username-input__status.is-warning { color: var(--warning-text); }
 
 
 /* ---------- S7 Claim ---------- */
@@ -674,7 +679,7 @@ p {
   align-items: center;
   gap: var(--s-3);
   text-align: center;
-  color: var(--text-muted);
+  color: var(--text-muted-on-card);
   padding: var(--s-6) var(--s-4);
 }
 
@@ -716,7 +721,7 @@ p {
 }
 
 .detail-row + .detail-row { border-top: 1px solid var(--separator); }
-.detail-row__label { color: var(--text-muted); text-align: left; flex: none; }
+.detail-row__label { color: var(--text-muted-on-card); text-align: left; flex: none; }
 .detail-row .fingerprint { margin-right: calc(-1 * var(--s-2)); }
 
 .row--static { cursor: default; }
@@ -743,7 +748,7 @@ p {
   justify-content: center;
   width: var(--touch);
   height: var(--touch);
-  color: var(--brand);
+  color: var(--brand-text);
 }
 
 .tg-shim-back[hidden] { display: none; }
@@ -754,7 +759,7 @@ p {
   padding: 0 var(--s-3);
   border-radius: var(--r-full);
   background: var(--bg-secondary);
-  color: var(--text-muted);
+  color: var(--text-muted-on-card);
   font: var(--type-caption);
 }
 

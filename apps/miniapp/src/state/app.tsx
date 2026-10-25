@@ -1,4 +1,14 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import type { Me, PayApi } from "../api/PayApi";
 
 interface AppState {
@@ -10,7 +20,7 @@ interface AppState {
   invalidate(): void;
   /** S5 draft survives S6 failures and back-navigation. */
   draft: { raw: string; note: string };
-  setDraft(d: { raw: string; note: string }): void;
+  setDraft: Dispatch<SetStateAction<{ raw: string; note: string }>>;
 }
 
 const AppContext = createContext<AppState | null>(null);

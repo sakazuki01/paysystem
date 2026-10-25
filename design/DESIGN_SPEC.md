@@ -158,7 +158,7 @@ Navigation: Home is the root. Everything else pushes on top and uses Telegram Ba
 ### S6 — Confirm (the safety screen)
 - Large Card, centred: 64 px avatar, `@alex` (headline), display name, caption "On Pay System since Oct 2026", Fingerprint.
 - Amount `--type-amount-xl` "$10.00", note below.
-- Safety banners, at most 2, shown in this order:
+- Safety banners, at most 2, shown in this order. Warnings 1–2 apply only to REGISTERED recipients; an escrow recipient shows banner 3 only. A send-failure banner replaces all of them while visible.
   1. Warning: "First time paying @alex2" (if never paid before)
   2. Warning: "This account was created today" (if age < 24 h)
   3. Info: "@newfriend isn't on Pay System yet. They have 7 days to claim, or you get it back." (escrow case)
@@ -214,6 +214,16 @@ Short, friendly and specific, written in the second person. Say "dollars" or "$"
 - Refund available: "@newfriend didn't claim your $10. Tap to get it back." + button **Refund**.
 - `/send` with a bad format: "Try: /send @alex 5"
 (The bot may use one emoji, 💸, at the start of payment messages. Nowhere else.)
+
+### 6.4 Decisions from review 1 (v1.1)
+- S2 disabled MainButton: "Claim". Show "Claim @name" only when the name is available.
+- S8 escrow: extra caption "They have 7 days to claim it".
+- S8 refund: title "Refunded $5.00", caption "It's back in your balance"; pill "Refunded".
+- S9 share text: "Pay me on Pay System: @sakz" + link.
+- Invalid or claimed link: "This payment link isn't valid anymore." + "If you think this is wrong, ask the sender to resend it."
+- S10 labels: Date, Note, Status, Fee, Transaction.
+- Plurals: "Paid 1 time" / "Paid 6 times"; "Expires in 1 day" / "Expires in 6 days"; under 24 h "Expires today".
+- Keypad keys shrink to 56 px when the viewport height is under 600 px.
 
 ## 7. States checklist (every screen)
 Loading (skeleton) · Empty · Error (Banner + retry) · Success · Offline ("You're offline" toast; disable the MainButton) · Light and dark theme · 360 px width · Reduced motion.

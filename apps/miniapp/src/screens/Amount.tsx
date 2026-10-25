@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import type { RecipientInfo } from "../api/PayApi";
 import { Screen } from "../components/Screen";
@@ -20,20 +20,24 @@ export function Amount({ recipient }: { recipient: RecipientInfo }) {
   const balance = useAsync(() => api.getBalance());
   const [shake, setShake] = useState(0);
   const { raw, note } = draft;
+  // Taps can land before React re-renders; read the latest amount from a ref so none are dropped.
+  const rawRef = useRef(raw);
+  rawRef.current = raw;
 
   const status = balance.data === undefined ? "empty" : amountStatus(raw, balance.data);
 
   const onKey = useCallback(
     (key: KeypadKey) => {
-      const next = applyKey(draft.raw, key);
+      const next = applyKey(rawRef.current, key);
       if (next.rejected) {
         haptic.error();
         setShake((s) => s + 1);
         return;
       }
-      setDraft({ ...draft, raw: next.raw });
+      rawRef.current = next.raw;
+      setDraft((d) => ({ ...d, raw: next.raw }));
     },
-    [draft, setDraft],
+    [setDraft],
   );
 
   useMainButton({
@@ -57,7 +61,7 @@ export function Amount({ recipient }: { recipient: RecipientInfo }) {
             key={c}
             label={`$${c / 100}`}
             selected={rawToCents(raw) === c}
-            onClick={() => setDraft({ ...draft, raw: centsToRaw(c) })}
+            onClick={() => setDraft((d) => ({ ...d, raw: centsToRaw(c) }))}
           />
         ))}
       </div>
@@ -69,7 +73,10 @@ export function Amount({ recipient }: { recipient: RecipientInfo }) {
         aria-label="What's it for?"
         maxLength={NOTE_MAX}
         value={note}
-        onChange={(e) => setDraft({ ...draft, note: e.target.value.slice(0, NOTE_MAX) })}
+        onChange={(e) => {
+          const note = e.target.value.slice(0, NOTE_MAX);
+          setDraft((d) => ({ ...d, note }));
+        }}
       />
 
       <p className={`balance-caption ${status === "insufficient" ? "is-danger" : ""}`} aria-live="polite">

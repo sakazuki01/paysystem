@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
 import { MockPayApi } from "../api/MockPayApi";
@@ -125,6 +125,19 @@ describe("S5 amount rules in the UI", () => {
     await user.click(screen.getByRole("button", { name: "Delete" }));
     await user.click(screen.getByRole("button", { name: "Delete" }));
     expect(mainButton()).toBeEnabled();
+  });
+
+  it("doesn't drop keys tapped faster than React re-renders", async () => {
+    const { user } = setup();
+    await screen.findByText("$124.50");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex");
+    await user.click(await screen.findByRole("button", { name: /@alex\b.*Paid 6 times/ }));
+    const pad = screen.getByRole("group", { name: "Keypad" });
+    act(() => {
+      for (const k of ["1", "2", "3"]) fireEvent.click(within(pad).getByRole("button", { name: k }));
+    });
+    expect(screen.getByLabelText("123 dollars")).toBeInTheDocument();
   });
 
   it("rejects a third decimal with a shake", async () => {

@@ -50,7 +50,7 @@ export function applyTheme(app: WebApp = tg()) {
 }
 
 export function brandColor(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#7C5CFF";
+  return getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#6A45F5";
 }
 
 export const haptic = {

@@ -11,8 +11,9 @@
   --text: var(--tg-theme-text-color, #0F1115);
   --text-muted: var(--tg-theme-hint-color, #6B7280);
   --separator: var(--tg-theme-section-separator-color, #E5E7EB);
-  --brand: #7C5CFF;
-  --brand-soft: #7C5CFF1A;
+  --brand: #6A45F5;
+  --brand-text: #6A45F5;
+  --brand-soft: #6A45F51A;
   --on-brand: #FFFFFF;
   --success: #14B86A;
   --success-soft: #14B86A1A;
@@ -21,7 +22,14 @@
   --danger: #E5484D;
   --danger-soft: #E5484D1A;
   --pending: #8A8F98;
-  --brand-gradient: linear-gradient(135deg, #7C5CFF 0%, #14F195 100%);
+  --brand-gradient: linear-gradient(135deg, #6A45F5 0%, #14F195 100%);
+
+  /* Text-only semantic tokens (spec v1.1): any TEXT in a semantic colour uses these. */
+  --success-text: #0B7A45;
+  --warning-text: #946000;
+  --danger-text: #C8303A;
+  --pending-text: #646973;
+  --text-muted-on-card: #5F6672;
 
   /* 3.2 Typography: size / line-height / weight */
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -72,7 +80,8 @@
   --text: var(--tg-theme-text-color, #F4F5F7);
   --text-muted: var(--tg-theme-hint-color, #9097A3);
   --separator: var(--tg-theme-section-separator-color, #2C2E36);
-  --brand: #8F74FF;
+  --brand: #6F52F0;
+  --brand-text: #8F74FF;
   --brand-soft: #8F74FF26;
   --on-brand: #FFFFFF;
   --success: #2FD083;
@@ -82,4 +91,10 @@
   --danger: #FF6369;
   --danger-soft: #FF636926;
   --pending: #A3A9B3;
+
+  --success-text: #2FD083;
+  --warning-text: #F2B233;
+  --danger-text: #FF6369;
+  --pending-text: #A3A9B3;
+  --text-muted-on-card: #9097A3;
 }
