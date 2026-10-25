@@ -650,6 +650,78 @@ p {
 .username-input__status.is-danger { color: var(--danger); }
 .username-input__status.is-warning { color: var(--warning); }
 
+
+/* ---------- S7 Claim ---------- */
+
+.claim { justify-content: center; }
+
+.claim__hero,
+.detail__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.claim__hero .avatar { margin-bottom: var(--s-2); }
+.claim__setup { text-align: center; }
+
+.claim__muted {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--s-6) var(--s-4);
+}
+
+/* ---------- S9 Receive ---------- */
+
+.receive { align-items: center; gap: var(--s-6); padding-top: calc(var(--s-8) + var(--shim-top, 0px)); }
+.receive__name { font: var(--type-title); }
+
+.receive__qr {
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: #FFFFFF;
+  box-shadow: inset 0 0 0 1px var(--separator);
+  line-height: 0;
+}
+
+.receive .detail-list { align-self: stretch; }
+
+/* ---------- S10 detail ---------- */
+
+.detail__hero { padding: var(--s-4) 0; }
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-lg);
+  background: var(--bg-secondary);
+  padding: 0 var(--s-4);
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 48px;
+  font: var(--type-label);
+  text-align: right;
+}
+
+.detail-row + .detail-row { border-top: 1px solid var(--separator); }
+.detail-row__label { color: var(--text-muted); text-align: left; flex: none; }
+.detail-row .fingerprint { margin-right: calc(-1 * var(--s-2)); }
+
+.row--static { cursor: default; }
+.detail__explorer { align-self: center; }
+
 /* ---------- Dev shim (outside Telegram only) ---------- */
 
 .tg-shim-top {

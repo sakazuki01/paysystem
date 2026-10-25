@@ -373,8 +373,8 @@ export class MockPayApi implements PayApi {
     };
     // Pending: sakz -> @newfriend, 6 days left.
     escrow({ id: "esc_newfriend", sender: "sakz", senderName: "Sakz Kaito", recipientHandle: "newfriend",
-      amountCents: 1000, note: "Welcome to Pay System", createdAt: now - DAY_MS + H,
-      expiresAt: now - DAY_MS + H + ESCROW_TTL_MS, status: "pending" }, true);
+      amountCents: 1000, note: "Welcome to Pay System", createdAt: now - DAY_MS - H,
+      expiresAt: now - DAY_MS - H + ESCROW_TTL_MS, status: "pending" }, true);
     // Expired, refundable: sakz -> @oldpal.
     escrow({ id: "esc_oldpal", sender: "sakz", senderName: "Sakz Kaito", recipientHandle: "oldpal",
       amountCents: 500, note: "Movie", createdAt: now - 8 * DAY_MS, expiresAt: now - DAY_MS, status: "pending" }, true);
