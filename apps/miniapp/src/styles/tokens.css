@@ -1,0 +1,85 @@
+/* Design tokens: design/DESIGN_SPEC.md §3.
+   Surfaces/text come from Telegram themeParams (--tg-theme-*), with our fallbacks.
+   Brand + semantic colours are ours and switch on html[data-theme]. */
+
+:root {
+  color-scheme: light;
+
+  /* 3.1 Colour (light) */
+  --bg: var(--tg-theme-bg-color, #FFFFFF);
+  --bg-secondary: var(--tg-theme-secondary-bg-color, #F2F3F5);
+  --text: var(--tg-theme-text-color, #0F1115);
+  --text-muted: var(--tg-theme-hint-color, #6B7280);
+  --separator: var(--tg-theme-section-separator-color, #E5E7EB);
+  --brand: #7C5CFF;
+  --brand-soft: #7C5CFF1A;
+  --on-brand: #FFFFFF;
+  --success: #14B86A;
+  --success-soft: #14B86A1A;
+  --warning: #D98A00;
+  --warning-soft: #D98A001A;
+  --danger: #E5484D;
+  --danger-soft: #E5484D1A;
+  --pending: #8A8F98;
+  --brand-gradient: linear-gradient(135deg, #7C5CFF 0%, #14F195 100%);
+
+  /* 3.2 Typography: size / line-height / weight */
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --type-amount-xl: 700 48px/56px var(--font);
+  --type-amount-l: 700 34px/40px var(--font);
+  --type-title: 600 22px/28px var(--font);
+  --type-headline: 600 17px/22px var(--font);
+  --type-body: 400 16px/22px var(--font);
+  --type-label: 500 14px/20px var(--font);
+  --type-caption: 400 13px/18px var(--font);
+  --type-mono: 500 13px/18px var(--font-mono);
+
+  /* 3.3 Spacing (4 pt) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+
+  /* Radius */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-full: 999px;
+
+  /* Elevation (sheets only) */
+  --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.12);
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --touch: 44px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: var(--tg-theme-bg-color, #17181C);
+  --bg-secondary: var(--tg-theme-secondary-bg-color, #1F2026);
+  --text: var(--tg-theme-text-color, #F4F5F7);
+  --text-muted: var(--tg-theme-hint-color, #9097A3);
+  --separator: var(--tg-theme-section-separator-color, #2C2E36);
+  --brand: #8F74FF;
+  --brand-soft: #8F74FF26;
+  --on-brand: #FFFFFF;
+  --success: #2FD083;
+  --success-soft: #2FD08326;
+  --warning: #F2B233;
+  --warning-soft: #F2B23326;
+  --danger: #FF6369;
+  --danger-soft: #FF636926;
+  --pending: #A3A9B3;
+}

@@ -37,8 +37,9 @@ Build them as CSS custom properties in `apps/miniapp/src/styles/tokens.css`. Sur
 | `--text` | `--tg-theme-text-color` / `#0F1115` | `#F4F5F7` | primary text |
 | `--text-muted` | `--tg-theme-hint-color` / `#6B7280` | `#9097A3` | secondary text |
 | `--separator` | `--tg-theme-section-separator-color` / `#E5E7EB` | `#2C2E36` | dividers |
-| `--brand` | `#7C5CFF` | `#8F74FF` | accent, links, focus, selected |
-| `--brand-soft` | `#7C5CFF1A` | `#8F74FF26` | accent backgrounds, avatars |
+| `--brand` | `#6A45F5` | `#6F52F0` | brand FILLS: Send button, MainButton, gradient start, focus ring |
+| `--brand-text` | `#6A45F5` | `#8F74FF` | brand TEXT and icons: links, selected chip text, Receive button text |
+| `--brand-soft` | `#6A45F51A` | `#8F74FF26` | accent backgrounds, avatars |
 | `--on-brand` | `#FFFFFF` | `#FFFFFF` | text on brand |
 | `--success` | `#14B86A` | `#2FD083` | received, claimed, done |
 | `--success-soft` | `#14B86A1A` | `#2FD08326` | success banners |
@@ -46,9 +47,21 @@ Build them as CSS custom properties in `apps/miniapp/src/styles/tokens.css`. Sur
 | `--warning-soft` | `#D98A001A` | `#F2B23326` | warning banners |
 | `--danger` | `#E5484D` | `#FF6369` | errors, failed |
 | `--danger-soft` | `#E5484D1A` | `#FF636926` | error banners |
-| `--pending` | `#8A8F98` | `#A3A9B3` | pending / unclaimed |
+| `--pending` | `#8A8F98` | `#A3A9B3` | pending / unclaimed (icons, dots) |
 
-Brand gradient (only for the success moment and the logo): `linear-gradient(135deg, #7C5CFF 0%, #14F195 100%)`. The nod to Solana's green is intentional. **Never** use it behind body text.
+**Text-only semantic tokens.** Added in v1.1 after a contrast audit. Fill colours above are for fills and icons. Any TEXT in a semantic colour must use these:
+
+| Token | Light | Dark | Measured (light) |
+|---|---|---|---|
+| `--success-text` | `#0B7A45` | `#2FD083` | 4.92 on success-soft |
+| `--warning-text` | `#946000` | `#F2B233` | 4.85 on warning-soft |
+| `--danger-text` | `#C8303A` | `#FF6369` | 4.69 on danger-soft |
+| `--pending-text` | `#646973` | `#A3A9B3` | 5.51 on bg |
+| `--text-muted-on-card` | `#5F6672` | `#9097A3` | 5.21 on bg-secondary |
+
+White on `--brand`: 5.55 (light) and 5.07 (dark). Brand-text on brand-soft: 4.91 (light).
+
+Brand gradient (only for the success moment and the logo): `linear-gradient(135deg, #6A45F5 0%, #14F195 100%)`. The nod to Solana's green is intentional. **Never** use it behind body text.
 
 Set the MainButton colour with `setParams({ color: brand, text_color: '#FFFFFF' })`.
 
@@ -83,11 +96,11 @@ Minimum text size is 13 px. Never use all-caps body text. Small labels may use l
 
 | Component | Spec |
 |---|---|
-| **Avatar** | Circle, 40 px in lists and 64 px on the confirm card. Uses the Telegram photo if available, otherwise initials on `--brand-soft` with `--brand` text. |
+| **Avatar** | Circle, 40 px in lists and 64 px on the confirm card. Uses the Telegram photo if available, otherwise initials on `--brand-soft` with `--brand-text` text. |
 | **UserRow** | Avatar + `@username` (headline) + caption line (display name, or "Paid 6 times" / "New"). Whole row tappable, 64 px tall. |
 | **AmountDisplay** | `$` prefix at 60% size, `--text-muted`; value in `--type-amount-xl`, tabular-nums. Max 2 decimals. Shakes (6 px, 3×, 240 ms) + error haptic when the input is invalid. |
 | **Keypad** | 3×4 grid (1–9, `.`, 0, ⌫), keys 64 px tall, `--type-amount-l` digits, light haptic per key. Use our own keypad, not the system keyboard, for amounts. |
-| **Chip** | Quick amounts `$5 $10 $20 $50`. `--bg-secondary`, `--r-full`, `--type-label`. Selected = `--brand-soft` bg + `--brand` text. |
+| **Chip** | Quick amounts `$5 $10 $20 $50`. `--bg-secondary`, `--r-full`, `--type-label`. Selected = `--brand-soft` bg + `--brand-text` text. |
 | **Card** | `--bg-secondary`, `--r-lg`, padding `--s-4`. |
 | **Banner** | Icon + one-line text + optional link, on a `*-soft` bg with `*` icon and text colour, `--r-md`. Variants: info (brand), warning, success, danger. |
 | **StatusPill** | Small pill: `Sent` (muted), `Received` (success), `Pending` (pending), `Refundable` (warning), `Failed` (danger). |

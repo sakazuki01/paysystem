@@ -2,7 +2,7 @@
   "name": "pay-system",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "test:shared": "npm test --workspace @pay-system/shared",
     "test:rust": "cargo test -p pay_system",
@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "typescript": "^5.9.0"
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=22.18"
