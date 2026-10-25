@@ -5,7 +5,7 @@ import { PayApiError, type Listing } from "../api/PayApi";
 import { Screen } from "../components/Screen";
 import { Banner, Skeleton, Spinner } from "../components/primitives";
 import { DateBadge, Sheet } from "../components/tickets";
-import { errorCopy, NETWORK_ERROR, NOT_LANDED } from "../lib/errors";
+import { errorCopy, LOAD_ERROR, NOT_LANDED } from "../lib/errors";
 import { formatUsd } from "../lib/format";
 import { payExactlyOnce } from "../lib/payExactlyOnce";
 import { capCaption, eventDate, eventTime } from "../lib/ticketsUi";
@@ -119,7 +119,7 @@ export function EventDetail({ id }: { id: string }) {
           </div>
         ) : (
           <Banner variant="danger" action={{ label: "Try again", onClick: event.reload }}>
-            {NETWORK_ERROR}
+            {LOAD_ERROR}
           </Banner>
         )}
       </Screen>

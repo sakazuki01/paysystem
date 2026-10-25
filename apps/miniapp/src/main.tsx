@@ -16,6 +16,10 @@ const mock = new MockPayApi({ me: params.get("as") ?? "sakz", statusUnknownPolls
 const api: PayApi = mock;
 if (import.meta.env.DEV) {
   Object.assign(window, { payApi: mock });
+  // Money-safety checks in the browser: ?fail=afterLand|beforeLand makes the NEXT money action
+  // time out (afterLand = it landed, then the response was lost). Dev builds only.
+  const fail = params.get("fail");
+  if (fail === "afterLand" || fail === "beforeLand") mock.failNext("network", fail);
   if (tg().platform === "dev-shim") {
     // Demo walkthrough helpers (LOGIC §10.5): gifting needs > 24 h before the show, check-in needs show time.
     const refresh = () => window.dispatchEvent(new Event("pay:refresh"));
@@ -33,6 +37,14 @@ if (import.meta.env.DEV) {
         if (e) mock.__travelTo(e.startsAt + 30 * 60_000);
         refresh();
       },
+    );
+    registerDevAction(
+      () => "Next money action: time out AFTER it lands",
+      () => mock.failNext("network", "afterLand"),
+    );
+    registerDevAction(
+      () => "Next money action: fail BEFORE it lands",
+      () => mock.failNext("network", "beforeLand"),
     );
     registerDevAction(
       () => (mock.__me === "sakz" ? "Sign in as @newfriend" : "Sign in as @sakz"),

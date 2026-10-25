@@ -1,7 +1,7 @@
 import { Screen } from "../components/Screen";
 import { Banner } from "../components/primitives";
 import { EventCard, SegmentedControl, TicketRow } from "../components/tickets";
-import { NETWORK_ERROR } from "../lib/errors";
+import { LOAD_ERROR } from "../lib/errors";
 import { useApp, useAsync } from "../state/app";
 import { useNav } from "../state/nav";
 import { RowSkeletons } from "./Home";
@@ -36,7 +36,7 @@ export function Events({ tab = "events" }: { tab?: "events" | "mine" }) {
           <RowSkeletons />
         ) : events.data === undefined ? (
           <Banner variant="danger" action={{ label: "Try again", onClick: events.reload }}>
-            {NETWORK_ERROR}
+            {LOAD_ERROR}
           </Banner>
         ) : events.data.length === 0 ? (
           <p className="empty">No events yet.</p>
@@ -51,7 +51,7 @@ export function Events({ tab = "events" }: { tab?: "events" | "mine" }) {
         <RowSkeletons />
       ) : mine.data === undefined ? (
         <Banner variant="danger" action={{ label: "Try again", onClick: mine.reload }}>
-          {NETWORK_ERROR}
+          {LOAD_ERROR}
         </Banner>
       ) : mine.data.length === 0 ? (
         <p className="empty">

@@ -3,7 +3,7 @@ import { Check, ScanLine, X } from "lucide-react";
 import type { CheckInResult } from "../api/PayApi";
 import { Screen } from "../components/Screen";
 import { Banner } from "../components/primitives";
-import { NETWORK_ERROR } from "../lib/errors";
+import { ACTION_ERROR } from "../lib/errors";
 import { eventTime, ticketNo } from "../lib/ticketsUi";
 import { useApp, useAsync } from "../state/app";
 import { haptic, tg, useMainButton } from "../telegram/telegram";
@@ -115,7 +115,7 @@ export function CheckIn({ eventId }: { eventId: string }) {
         <ScanLine size={48} strokeWidth={1.5} />
       </span>
       <h1 className="title">{e?.name ?? "Check-in"}</h1>
-      {error && <Banner variant="danger">{NETWORK_ERROR}</Banner>}
+      {error && <Banner variant="danger">{ACTION_ERROR}</Banner>}
     </Screen>
   );
 }

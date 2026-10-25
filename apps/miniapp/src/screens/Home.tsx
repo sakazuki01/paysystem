@@ -3,7 +3,7 @@ import { Screen } from "../components/Screen";
 import { Avatar, Banner, Card, Skeleton } from "../components/primitives";
 import { ActivityRow } from "../components/rows";
 import { formatUsd } from "../lib/format";
-import { NETWORK_ERROR, shortUsd } from "../lib/errors";
+import { LOAD_ERROR, shortUsd } from "../lib/errors";
 import { useApp, useAsync } from "../state/app";
 import { useNav } from "../state/nav";
 import { haptic } from "../telegram/telegram";
@@ -40,7 +40,7 @@ export function Home() {
           <Skeleton width={160} height={40} radius={8} />
         ) : balance.data === undefined ? (
           <Banner variant="danger" action={{ label: "Try again", onClick: balance.reload }}>
-            {NETWORK_ERROR}
+            {LOAD_ERROR}
           </Banner>
         ) : (
           <span className="balance__value tabular">{formatUsd(balance.data)}</span>
@@ -110,7 +110,7 @@ export function Home() {
           <RowSkeletons />
         ) : activity.data === undefined ? (
           <Banner variant="danger" action={{ label: "Try again", onClick: activity.reload }}>
-            {NETWORK_ERROR}
+            {LOAD_ERROR}
           </Banner>
         ) : activity.data.length === 0 ? (
           <p className="empty">No payments yet. Send your first $1 to a friend.</p>

@@ -3,7 +3,7 @@ import { useSingleFlight } from "../lib/useSingleFlight";
 import { Check, ExternalLink } from "lucide-react";
 import { Screen } from "../components/Screen";
 import { Avatar, Banner, Skeleton, StatusPill } from "../components/primitives";
-import { errorCopy, NETWORK_ERROR } from "../lib/errors";
+import { errorCopy, LOAD_ERROR } from "../lib/errors";
 import { amountAria, expiresInCaption, explorerTxUrl, fullTime, signedUsd } from "../lib/format";
 import { useApp, useAsync } from "../state/app";
 import { useNav } from "../state/nav";
@@ -58,7 +58,7 @@ export function ActivityDetail({ id }: { id: string }) {
           </div>
         ) : (
           <Banner variant="danger" action={{ label: "Try again", onClick: item.reload }}>
-            {NETWORK_ERROR}
+            {LOAD_ERROR}
           </Banner>
         )}
       </Screen>

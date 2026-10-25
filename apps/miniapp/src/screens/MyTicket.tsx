@@ -5,7 +5,7 @@ import type { TicketQr } from "../api/PayApi";
 import { Screen } from "../components/Screen";
 import { Banner, Skeleton } from "../components/primitives";
 import { CountdownRing } from "../components/tickets";
-import { NETWORK_ERROR } from "../lib/errors";
+import { ACTION_ERROR, LOAD_ERROR } from "../lib/errors";
 import { QR_TTL_MS } from "../lib/ticketQr";
 import { checkedInLabel, eventDate, eventTime, giftBlocker, resellBlocker, ticketNo, ticketPill } from "../lib/ticketsUi";
 import { useSingleFlight } from "../lib/useSingleFlight";
@@ -70,7 +70,7 @@ export function MyTicket({ id }: { id: string }) {
       invalidate();
     } catch {
       haptic.error();
-      toast(NETWORK_ERROR);
+      toast(ACTION_ERROR);
     }
   });
 
@@ -81,7 +81,7 @@ export function MyTicket({ id }: { id: string }) {
           <Skeleton width="100%" height={420} radius={16} />
         ) : (
           <Banner variant="danger" action={{ label: "Try again", onClick: ticket.reload }}>
-            {NETWORK_ERROR}
+            {LOAD_ERROR}
           </Banner>
         )}
       </Screen>
@@ -124,7 +124,7 @@ export function MyTicket({ id }: { id: string }) {
                 <CountdownRing secondsLeft={secondsLeft} total={TTL_S} />
                 Refreshes every 30 s · Screenshots won't work
               </p>
-              {failed && <p className="helper helper--danger">{NETWORK_ERROR}</p>}
+              {failed && <p className="helper helper--danger">{LOAD_ERROR}</p>}
               {devShim && qr && (
                 <button
                   type="button"

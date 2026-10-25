@@ -4,7 +4,7 @@ import { PayApiError, type UsernameCheck } from "../api/PayApi";
 import { Screen } from "../components/Screen";
 import { Banner } from "../components/primitives";
 import { UsernameInput, type UsernameStatus } from "../components/UsernameInput";
-import { errorCopy } from "../lib/errors";
+import { errorCopy, LOAD_ERROR } from "../lib/errors";
 import { useApp } from "../state/app";
 import { useNav } from "../state/nav";
 import { haptic, useMainButton } from "../telegram/telegram";
@@ -73,7 +73,7 @@ export function PickUsername({ afterClaim = false }: { afterClaim?: boolean }) {
         const c = await api.checkUsername(v.normalized);
         if (id === seq.current) setStatus(fromCheck(v.normalized, c));
       } catch (e) {
-        if (id === seq.current) setStatus({ state: "error", message: errorCopy(e) });
+        if (id === seq.current) setStatus({ state: "error", message: LOAD_ERROR });
       }
     }, DEBOUNCE_MS);
   }

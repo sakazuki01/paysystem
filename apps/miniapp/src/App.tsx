@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import type { Me, PayApi } from "./api/PayApi";
 import { Banner, Logo, Skeleton } from "./components/primitives";
-import { NETWORK_ERROR } from "./lib/errors";
+import { LOAD_ERROR } from "./lib/errors";
 import { AppProvider, useApp } from "./state/app";
 import { NavProvider, useNav, type Route } from "./state/nav";
 import { ToastProvider } from "./state/toast";
@@ -93,7 +93,7 @@ function Boot({ failed, retry }: { failed: boolean; retry(): void }) {
       <Logo />
       {failed ? (
         <Banner variant="danger" action={{ label: "Try again", onClick: retry }}>
-          {NETWORK_ERROR}
+          {LOAD_ERROR}
         </Banner>
       ) : (
         <>

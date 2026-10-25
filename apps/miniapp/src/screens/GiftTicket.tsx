@@ -5,7 +5,7 @@ import type { UserSummary } from "../api/PayApi";
 import { Screen } from "../components/Screen";
 import { Avatar, Banner, Card } from "../components/primitives";
 import { UserSummaryRow } from "../components/rows";
-import { NETWORK_ERROR } from "../lib/errors";
+import { LOAD_ERROR } from "../lib/errors";
 import { eventDate, ticketNo } from "../lib/ticketsUi";
 import { useSingleFlight } from "../lib/useSingleFlight";
 import { useApp, useAsync } from "../state/app";
@@ -108,7 +108,7 @@ export function GiftTicket({ ticketId }: { ticketId: string }) {
       </div>
       {results.error !== undefined && (
         <Banner variant="danger" action={{ label: "Try again", onClick: results.reload }}>
-          {NETWORK_ERROR}
+          {LOAD_ERROR}
         </Banner>
       )}
       {results.loading && q && !users.length ? (

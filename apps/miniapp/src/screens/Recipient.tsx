@@ -5,7 +5,7 @@ import { Screen } from "../components/Screen";
 import { Avatar, Banner } from "../components/primitives";
 import { UserRow, UserSummaryRow } from "../components/rows";
 import { didYouMean } from "../lib/didYouMean";
-import { NETWORK_ERROR } from "../lib/errors";
+import { LOAD_ERROR } from "../lib/errors";
 import { fingerprint } from "../lib/format";
 import { plural } from "../lib/plural";
 import { useApp, useAsync } from "../state/app";
@@ -66,7 +66,7 @@ export function Recipient() {
       const recipient = await api.getRecipientInfo(handle);
       nav.push({ name: "amount", recipient });
     } catch {
-      toast(NETWORK_ERROR);
+      toast(LOAD_ERROR);
     } finally {
       setBusy(false);
     }
@@ -176,7 +176,7 @@ export function Recipient() {
               <RowSkeletons />
             ) : recent.data === undefined ? (
               <Banner variant="danger" action={{ label: "Try again", onClick: recent.reload }}>
-                {NETWORK_ERROR}
+                {LOAD_ERROR}
               </Banner>
             ) : recent.data.length > 0 ? (
               <section className="section" aria-labelledby="recent-title">
@@ -192,7 +192,7 @@ export function Recipient() {
             <div className="list" aria-busy={searching}>
               {results.error !== undefined && !searching ? (
                 <Banner variant="danger" action={{ label: "Try again", onClick: results.reload }}>
-                  {NETWORK_ERROR}
+                  {LOAD_ERROR}
                 </Banner>
               ) : null}
               {(results.data ?? []).map((u) => (

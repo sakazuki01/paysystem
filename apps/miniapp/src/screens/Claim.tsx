@@ -4,7 +4,7 @@ import { Clock, UserX } from "lucide-react";
 import { PayApiError } from "../api/PayApi";
 import { Screen } from "../components/Screen";
 import { Avatar, Banner, Card, Skeleton } from "../components/primitives";
-import { errorCopy, NETWORK_ERROR } from "../lib/errors";
+import { errorCopy, LOAD_ERROR } from "../lib/errors";
 import { amountAria, formatUsd } from "../lib/format";
 import { useApp, useAsync } from "../state/app";
 import { useNav } from "../state/nav";
@@ -77,7 +77,7 @@ export function Claim({ id }: { id: string }) {
           </div>
         ) : (
           <Banner variant="danger" action={{ label: "Try again", onClick: escrow.reload }}>
-            {NETWORK_ERROR}
+            {LOAD_ERROR}
           </Banner>
         )}
       </Screen>
