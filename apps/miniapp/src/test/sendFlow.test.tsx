@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { App } from "../App";
@@ -116,6 +116,7 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     await user.type(screen.getByRole("searchbox", { name: "Username or @handle" }), "alex2");
     await user.click(await screen.findByRole("button", { name: /^@alex2\b/ }));
     await screen.findByRole("group", { name: "Keypad" });
+    await screen.findByText(/^Balance \$/); // Review stays disabled until the balance loads
     await tapKeys(user, "1");
     await user.click(mainButton());
     await screen.findByText("First time paying @alex2");
@@ -128,9 +129,17 @@ describe("send flow (S3 → S4 → S5 → S6 → S8)", () => {
     expect(screen.queryByText("First time paying @alex2")).not.toBeInTheDocument();
     expect(screen.queryByText("This account was created today")).not.toBeInTheDocument();
 
+    // Hold the retried send open so the "sending" state can be inspected deterministically.
+    let release!: () => void;
+    const realSend = api.send.bind(api);
+    vi.spyOn(api, "send").mockImplementationOnce(async (input) => {
+      await new Promise<void>((r) => (release = r));
+      return realSend(input);
+    });
     await user.click(mainButton()); // Try again: failure clears, safety banners return while sending
     expect(screen.queryByText(/Payment didn't go through/)).not.toBeInTheDocument();
-    expect(screen.getByText("First time paying @alex2")).toBeInTheDocument();
+    expect(await screen.findByText("First time paying @alex2")).toBeInTheDocument();
+    release();
     expect(await screen.findByText("Sent $1.00 to @alex2")).toBeInTheDocument();
   });
 });
