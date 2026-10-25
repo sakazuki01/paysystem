@@ -70,6 +70,16 @@ Skeleton: remove `_` → `rn`→`m` → map `0→o 1→l i→l 5→s 3→e 8→b
 
 S4 accepts a username, an @handle or a Solana wallet address (typed, pasted with **Paste**, or scanned with **Scan**, which takes a raw address or a `solana:<address>?…` URI). `packages/shared` → `parseRecipient` / `validateAddress` decide which it is: base58, exactly 32 bytes, and **on** the ed25519 curve (off-curve program addresses can't receive). An address owned by a registered user shows as that user ("Wallet of @alex"); your own wallet is rejected. S6 shows the full address in groups of 4 over 3 lines plus one warning banner. `PayApi.send({ toAddress })` pays it directly (no escrow). Mock: `SEED_WALLETS.alex` resolves to @alex; any other valid key is a stranger's wallet.
 
+## Tickets
+
+Tickets are program accounts, not tokens (LOGIC §10.1), so every rule is enforceable: buy from the organizer, resale capped at face × `max_resale_bps` / 10 000 (**floored to the cent**), one gift per ticket, no gifts or resales in the last 24 h, registered recipients only, one check-in. The rules live in `packages/shared/src/tickets.ts` and are pinned by `shared/ticket-vectors.json`, which the shared tests, the Mini App mock and (Milestone C) the Anchor tests all load.
+
+Screens S11–S16 (Home → **Tickets**). Purchases are exactly-once (an intent per confirm sheet, receipt polling on timeout); `buyListed` sends the seller and price the buyer saw and fails with `listing_changed` otherwise. The ticket QR is `{t, ts, sig}` re-signed every 30 s; check-in verifies the signer is the **current** owner, so screenshots of gifted or resold tickets fail.
+
+**Demo walkthrough (LOGIC §10.5), automated:** with the dev server running, `npm run demo -w @pay-system/miniapp` drives the UI through address send → buy → resell at $40 refused → gift to @newfriend → show time → Admit → Already used, asserting each step and writing the review screenshots. Manually, use the shim's **Dev** menu: *Organizer view* (in dev @sakz organizes Solana Night Live), *Jump to show time*, *Sign in as @newfriend / @sakz*. On S13 in dev, *Copy QR text* gives the payload to paste into the organizer's scanner prompt.
+
+Note: gifting must happen more than 24 h before the show and check-in within ±12 h of it, so the demo needs the clock jump; on stage, do the gift part earlier or present it as two moments.
+
 ## Mini App
 
 ```bash
