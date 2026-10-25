@@ -1,0 +1,23 @@
+{
+  "name": "pay-system",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test:shared": "npm test --workspace @pay-system/shared",
+    "test:rust": "cargo test -p pay_system",
+    "test:anchor": "anchor test"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.32.1",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}
