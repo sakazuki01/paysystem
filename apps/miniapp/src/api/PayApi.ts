@@ -94,6 +94,70 @@ export interface SendResult extends TxResult {
   escrowId?: string;
 }
 
+// ---------- Tickets (LOGIC §10) ----------
+
+export interface EventSummary {
+  id: string;
+  name: string;
+  venue: string;
+  startsAt: number;
+  priceCents: number;
+  /** e.g. 11000 = resale capped at 110% of face value. */
+  maxResaleBps: number;
+  supply: number;
+  sold: number;
+  lockSecs: number;
+  organizer: string;
+  checkedIn: number;
+}
+
+export interface Listing {
+  ticketId: string;
+  ticketNo: number;
+  seller: string;
+  priceCents: number;
+}
+
+export interface EventDetail extends EventSummary {
+  /** Cheapest first. */
+  listings: Listing[];
+  /** The signed-in user organizes this event (S16 check-in). */
+  isOrganizer: boolean;
+}
+
+export interface Ticket {
+  id: string;
+  eventId: string;
+  eventName: string;
+  venue: string;
+  startsAt: number;
+  lockSecs: number;
+  maxResaleBps: number;
+  ticketNo: number;
+  owner: string;
+  faceCents: number;
+  /** 0 = not listed. */
+  listedCents: number;
+  giftsUsed: number;
+  checkedIn: boolean;
+  checkedInAt?: number;
+}
+
+export interface TicketTxResult extends TxResult {
+  ticket: Ticket;
+}
+
+/** QR payload is JSON `{ t, ts, sig }`; `sig` is the holder's wallet signature over `ticketQrMessage(t, ts)`. */
+export interface TicketQr {
+  payload: string;
+  expiresAt: number;
+}
+
+export type CheckInResult =
+  | { result: "admit"; holder: string; ticketNo: number; checkedIn: number; supply: number }
+  | { result: "used"; checkedInAt: number }
+  | { result: "invalid"; reason: "Wrong event" | "Expired code" | "Not the owner" | "Not a ticket" | "Outside check-in hours" };
+
 export type PaymentStatus =
   | { status: "landed"; receipt: SendResult }
   | { status: "notLanded" }
@@ -107,7 +171,22 @@ export type PayErrorCode =
   | "escrow_not_found"
   | "escrow_expired"
   | "escrow_wrong_user"
-  | "escrow_not_refundable";
+  | "escrow_not_refundable"
+  | "sold_out"
+  | "event_started"
+  | "invalid_price"
+  | "price_above_cap"
+  | "already_gifted"
+  | "transfer_locked"
+  | "recipient_not_registered"
+  | "ticket_listed"
+  | "ticket_checked_in"
+  | "not_listed"
+  | "listing_changed"
+  | "own_ticket"
+  | "not_owner"
+  | "not_organizer"
+  | "ticket_not_found";
 
 export class PayApiError extends Error {
   constructor(
@@ -140,4 +219,20 @@ export interface PayApi {
   getEscrow(id: string): Promise<Escrow | null>;
   claimEscrow(id: string): Promise<TxResult>;
   refundEscrow(id: string): Promise<TxResult>;
+
+  // Tickets
+  listEvents(): Promise<EventSummary[]>;
+  getEvent(id: string): Promise<EventDetail | null>;
+  /** Exactly-once per intent: a repeat returns the original ticket. */
+  buyTicket(eventId: string, intentId: string): Promise<TicketTxResult>;
+  getMyTickets(): Promise<Ticket[]>;
+  getTicket(id: string): Promise<Ticket | null>;
+  giftTicket(id: string, toUsername: string): Promise<TxResult>;
+  listTicket(id: string, priceCents: number): Promise<TxResult>;
+  cancelListing(id: string): Promise<TxResult>;
+  /** Fails with listing_changed unless the seller and price still match what the buyer saw. */
+  buyListed(id: string, intentId: string, expectedSeller: string, expectedPriceCents: number): Promise<TicketTxResult>;
+  getTicketQr(id: string): Promise<TicketQr>;
+  /** Organizer only. */
+  checkIn(eventId: string, qrPayload: string): Promise<CheckInResult>;
 }

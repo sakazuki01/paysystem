@@ -336,6 +336,7 @@ Short, friendly and specific, written in the second person. Say "dollars" or "$"
 | Reserved | "That name is reserved" |
 | One per account | "You already have @sakz" |
 | Not enough balance | "Not enough balance" |
+| Load failed (balance, lists, any read) | "Couldn't load this. Check your connection and try again." + Try again link |
 | Network error (we know it didn't land) | "Payment didn't go through. Your money hasn't moved — try again." |
 | Network error (unknown yet) | Banner info: "Checking your payment…" with a spinner. No Try again until it resolves. |
 | Turned out it did land | Go straight to S8 Success. Don't show an error. |

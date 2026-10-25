@@ -1,12 +1,27 @@
-import { normalize, validateUsername } from "@pay-system/shared";
+import {
+  canBuy,
+  canBuyListed,
+  canCheckIn,
+  canGift,
+  canList,
+  normalize,
+  validateUsername,
+  type EventRules,
+} from "@pay-system/shared";
 import {
   PayApiError,
   type Activity,
   type Escrow,
   type Me,
   type PayApi,
+  type CheckInResult,
+  type EventDetail,
+  type EventSummary,
   type PayErrorCode,
   type PaymentStatus,
+  type Ticket,
+  type TicketQr,
+  type TicketTxResult,
   type RecipientInfo,
   type SendInput,
   type SendResult,
@@ -15,6 +30,7 @@ import {
   type UsernameCheck,
 } from "./PayApi";
 import { fingerprint } from "../lib/format";
+import { QR_TTL_MS, ticketQrMessage } from "../lib/ticketQr";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -24,6 +40,60 @@ export const SEED_WALLETS = {
   alex: "Da91Z1SneNKSigEVtVxPvpxBcsf4mJgPJKyRUnFTbnqa",
 } as const;
 export type FailMode = "beforeLand" | "afterLand";
+
+export const SEED_EVENTS = { snl: "ev_snl", hack: "ev_hack", soon: "ev_soon" } as const;
+
+interface EventRec extends EventRules {
+  id: string;
+  name: string;
+  venue: string;
+  organizer: string;
+  checkedIn: number;
+}
+
+interface TicketRec {
+  id: string;
+  eventId: string;
+  ticketNo: number;
+  owner: string;
+  faceCents: number;
+  listedCents: number;
+  giftsUsed: number;
+  checkedIn: boolean;
+  checkedInAt?: number;
+}
+
+/**
+ * Stand-in for a wallet signature over the QR message (the real app uses the embedded
+ * wallet's signMessage and the scanner verifies ed25519). FNV-1a over wallet + message.
+ */
+function fakeSign(wallet: string, message: string): string {
+  let h = 0xcbf29ce484222325n;
+  for (const ch of `${wallet}|${message}`) {
+    h ^= BigInt(ch.codePointAt(0)!);
+    h = (h * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return h.toString(16).padStart(16, "0");
+}
+
+const TICKET_ERRORS: Record<string, PayErrorCode> = {
+  SoldOut: "sold_out",
+  EventStarted: "event_started",
+  InvalidPrice: "invalid_price",
+  PriceAboveCap: "price_above_cap",
+  AlreadyGifted: "already_gifted",
+  TransferLocked: "transfer_locked",
+  RecipientNotRegistered: "recipient_not_registered",
+  Listed: "ticket_listed",
+  CheckedIn: "ticket_checked_in",
+  NotListed: "not_listed",
+  ListingChanged: "listing_changed",
+  OwnTicket: "own_ticket",
+};
+
+function check(result: string) {
+  if (result !== "ok") throw new PayApiError(TICKET_ERRORS[result] ?? "network", result);
+}
 export const ESCROW_TTL_MS = 7 * DAY_MS;
 
 interface Account {
@@ -75,13 +145,44 @@ export class MockPayApi implements PayApi {
   private receipts = new Map<string, SendResult>();
   private statusPolls = new Map<string, number>();
   private statusUnknownPolls: number;
+  private events = new Map<string, EventRec>();
+  private tickets = new Map<string, TicketRec>();
+  private ticketReceipts = new Map<string, TicketTxResult>();
+  /** Shared by every `as()` view, so time travel applies to all of them. */
+  private clock = { offset: 0 };
+  /** Dev toggle: when false, @sakz sees Solana Night Live as a regular attendee. */
+  organizerView = true;
 
   constructor(opts: MockOptions = {}) {
     this.latency = opts.latencyMs ?? 900;
     this.meHandle = opts.me ?? "sakz";
-    this.now = opts.now ?? Date.now;
+    const base = opts.now ?? Date.now;
+    this.now = () => base() + this.clock.offset;
     this.statusUnknownPolls = opts.statusUnknownPolls ?? 0;
     this.seed();
+  }
+
+  /** A view of the same world signed in as someone else (race tests, dev). */
+  as(handle: string): MockPayApi {
+    const view = Object.create(this) as MockPayApi;
+    view.meHandle = handle;
+    view.pendingFailure = null;
+    return view;
+  }
+
+  /** Dev/test: move the mock clock (e.g. to show time for check-in). */
+  __travelTo(ts: number) {
+    this.clock.offset += ts - this.now();
+  }
+
+  __fund(cents: number) {
+    this.me().balanceCents += cents;
+  }
+
+  /** Test: a fresh, validly signed QR payload, but signed by `handle`'s wallet. */
+  __qrSignedBy(ticketId: string, handle: string, ts: number): string {
+    const wallet = this.accounts.get(handle)!.wallet;
+    return JSON.stringify({ t: ticketId, ts, sig: fakeSign(wallet, ticketQrMessage(ticketId, ts)) });
   }
 
   /**
@@ -339,6 +440,189 @@ export class MockPayApi implements PayApi {
     return { settleMs, signature: randomBase58(88) };
   }
 
+  // ---------- tickets ----------
+
+  async listEvents(): Promise<EventSummary[]> {
+    await this.read();
+    return [...this.events.values()].sort((a, b) => a.startsAt - b.startsAt).map((e) => this.eventSummary(e));
+  }
+
+  async getEvent(id: string): Promise<EventDetail | null> {
+    await this.read();
+    const e = this.events.get(id);
+    if (!e) return null;
+    const listings = [...this.tickets.values()]
+      .filter((t) => t.eventId === id && t.listedCents > 0 && !t.checkedIn)
+      .sort((a, b) => a.listedCents - b.listedCents)
+      .map((t) => ({ ticketId: t.id, ticketNo: t.ticketNo, seller: t.owner, priceCents: t.listedCents }));
+    return { ...this.eventSummary(e), listings, isOrganizer: this.organizerView && e.organizer === this.myName() };
+  }
+
+  async getMyTickets(): Promise<Ticket[]> {
+    await this.read();
+    const me = this.myName();
+    return [...this.tickets.values()]
+      .filter((t) => t.owner === me)
+      .map((t) => this.ticketView(t))
+      .sort((a, b) => a.startsAt - b.startsAt);
+  }
+
+  async getTicket(id: string): Promise<Ticket | null> {
+    await this.read();
+    const t = this.tickets.get(id);
+    return t ? this.ticketView(t) : null;
+  }
+
+  async buyTicket(eventId: string, intentId: string): Promise<TicketTxResult> {
+    return this.ticketPayment(intentId, (settleMs) => {
+      const e = this.mustEvent(eventId);
+      check(canBuy(e, this.now()));
+      this.pay(e.organizer, e.priceCents);
+      e.sold += 1;
+      const t: TicketRec = {
+        id: newId("tkt"), eventId, ticketNo: e.sold, owner: this.myName(), faceCents: e.priceCents,
+        listedCents: 0, giftsUsed: 0, checkedIn: false,
+      };
+      this.tickets.set(t.id, t);
+      return { settleMs, signature: randomBase58(88), ticket: this.ticketView(t) };
+    });
+  }
+
+  async buyListed(id: string, intentId: string, expectedSeller: string, expectedPriceCents: number): Promise<TicketTxResult> {
+    return this.ticketPayment(intentId, (settleMs) => {
+      const t = this.mustTicket(id);
+      const e = this.mustEvent(t.eventId);
+      check(canBuyListed(t, e, { buyer: this.myName(), expectedSeller, expectedCents: expectedPriceCents }, this.now()));
+      this.pay(t.owner, t.listedCents);
+      t.owner = this.myName();
+      t.listedCents = 0;
+      return { settleMs, signature: randomBase58(88), ticket: this.ticketView(t) };
+    });
+  }
+
+  async giftTicket(id: string, toUsername: string): Promise<TxResult> {
+    const settleMs = await this.write();
+    const t = this.mustOwnTicket(id);
+    const to = normalize(toUsername.replace(/^@/, ""));
+    check(canGift(t, this.mustEvent(t.eventId), { recipientRegistered: !!this.byUsername(to) }, this.now()));
+    t.owner = to;
+    t.giftsUsed += 1;
+    return { settleMs, signature: randomBase58(88) };
+  }
+
+  async listTicket(id: string, priceCents: number): Promise<TxResult> {
+    const settleMs = await this.write();
+    const t = this.mustOwnTicket(id);
+    check(canList(t, this.mustEvent(t.eventId), priceCents, this.now()));
+    t.listedCents = priceCents;
+    return { settleMs, signature: randomBase58(88) };
+  }
+
+  async cancelListing(id: string): Promise<TxResult> {
+    const settleMs = await this.write();
+    this.mustOwnTicket(id).listedCents = 0;
+    return { settleMs, signature: randomBase58(88) };
+  }
+
+  async getTicketQr(id: string): Promise<TicketQr> {
+    await sleep(Math.round(this.latency / 9));
+    const t = this.mustOwnTicket(id);
+    const ts = this.now();
+    const sig = fakeSign(this.me().wallet, ticketQrMessage(t.id, ts));
+    return { payload: JSON.stringify({ t: t.id, ts, sig }), expiresAt: ts + QR_TTL_MS };
+  }
+
+  async checkIn(eventId: string, qrPayload: string): Promise<CheckInResult> {
+    const settleMs = await this.write();
+    void settleMs;
+    const e = this.mustEvent(eventId);
+    if (e.organizer !== this.myName()) throw new PayApiError("not_organizer");
+    let qr: { t?: unknown; ts?: unknown; sig?: unknown };
+    try {
+      qr = JSON.parse(qrPayload);
+    } catch {
+      return { result: "invalid", reason: "Not a ticket" };
+    }
+    const t = typeof qr.t === "string" ? this.tickets.get(qr.t) : undefined;
+    if (!t || typeof qr.ts !== "number" || typeof qr.sig !== "string") return { result: "invalid", reason: "Not a ticket" };
+    if (t.eventId !== eventId) return { result: "invalid", reason: "Wrong event" };
+    if (this.now() - qr.ts > QR_TTL_MS || qr.ts - this.now() > 5_000) return { result: "invalid", reason: "Expired code" };
+    // The signer must be the CURRENT owner: screenshots of a gifted or resold ticket fail here.
+    const ownerWallet = this.byUsername(t.owner)?.wallet ?? "";
+    if (fakeSign(ownerWallet, ticketQrMessage(t.id, qr.ts)) !== qr.sig) return { result: "invalid", reason: "Not the owner" };
+    const verdict = canCheckIn(t, e, this.now());
+    if (verdict === "AlreadyCheckedIn") return { result: "used", checkedInAt: t.checkedInAt! };
+    if (verdict === "CheckInWindow") return { result: "invalid", reason: "Outside check-in hours" };
+    t.checkedIn = true;
+    t.checkedInAt = this.now();
+    e.checkedIn += 1;
+    return { result: "admit", holder: t.owner, ticketNo: t.ticketNo, checkedIn: e.checkedIn, supply: e.supply };
+  }
+
+  /** Exactly-once purchases: same failure modes and receipts as `send`. */
+  private async ticketPayment(intentId: string, run: (settleMs: number) => TicketTxResult): Promise<TicketTxResult> {
+    const settleMs = await this.settle();
+    const failure = this.takeFailure();
+    if (failure && failure.mode === "beforeLand") throw new PayApiError(failure.code);
+    const key = this.receiptKey(intentId);
+    const existing = this.ticketReceipts.get(key);
+    if (existing) return existing;
+    const result = run(settleMs);
+    this.ticketReceipts.set(key, result);
+    this.receipts.set(key, { settleMs: result.settleMs, signature: result.signature, activityId: result.ticket.id });
+    if (failure) throw new PayApiError(failure.code, "Timed out after the purchase landed");
+    return result;
+  }
+
+  /** USDC from me to `username` (organizer or seller). */
+  private pay(username: string, cents: number) {
+    const me = this.me();
+    if (cents > me.balanceCents) throw new PayApiError("insufficient_funds");
+    me.balanceCents -= cents;
+    const to = this.byUsername(username);
+    if (to) to.balanceCents += cents;
+  }
+
+  private myName() {
+    const me = this.me();
+    return me.username ?? me.telegramHandle;
+  }
+
+  private mustEvent(id: string): EventRec {
+    const e = this.events.get(id);
+    if (!e) throw new PayApiError("ticket_not_found", "No such event");
+    return e;
+  }
+
+  private mustTicket(id: string): TicketRec {
+    const t = this.tickets.get(id);
+    if (!t) throw new PayApiError("ticket_not_found");
+    return t;
+  }
+
+  private mustOwnTicket(id: string): TicketRec {
+    const t = this.mustTicket(id);
+    if (t.owner !== this.myName()) throw new PayApiError("not_owner");
+    return t;
+  }
+
+  private eventSummary(e: EventRec): EventSummary {
+    return {
+      id: e.id, name: e.name, venue: e.venue, startsAt: e.startsAt, priceCents: e.priceCents,
+      maxResaleBps: e.maxResaleBps, supply: e.supply, sold: e.sold, lockSecs: e.lockSecs,
+      organizer: e.organizer, checkedIn: e.checkedIn,
+    };
+  }
+
+  private ticketView(t: TicketRec): Ticket {
+    const e = this.mustEvent(t.eventId);
+    return {
+      id: t.id, eventId: t.eventId, eventName: e.name, venue: e.venue, startsAt: e.startsAt, lockSecs: e.lockSecs,
+      maxResaleBps: e.maxResaleBps, ticketNo: t.ticketNo, owner: t.owner, faceCents: t.faceCents,
+      listedCents: t.listedCents, giftsUsed: t.giftsUsed, checkedIn: t.checkedIn, checkedInAt: t.checkedInAt,
+    };
+  }
+
   // ---------- internals ----------
 
   private async read() {
@@ -462,5 +746,25 @@ export class MockPayApi implements PayApi {
     // Incoming to my handle but expired (S7 expired variant).
     escrow({ id: "esc_expired", sender: "maya", senderName: "Maya Chen", recipientHandle: "sakz",
       amountCents: 2000, createdAt: now - 9 * DAY_MS, expiresAt: now - 2 * DAY_MS, status: "pending" }, false);
+
+    this.seedTickets(now);
+  }
+
+  /** LOGIC §10.5 demo. Show dates are the hackathon's (Nov 7/8); pushed forward if already past. */
+  private seedTickets(now: number) {
+    const at = (date: Date, fallbackDays: number) => (date.getTime() > now ? date.getTime() : now + fallbackDays * DAY_MS);
+    const ev = (e: Omit<EventRec, "checkedIn" | "lockSecs">) => this.events.set(e.id, { ...e, lockSecs: 86_400, checkedIn: 0 });
+    ev({ id: SEED_EVENTS.snl, name: "Solana Night Live", venue: "The Glasshouse", startsAt: at(new Date(2026, 10, 7, 20, 0), 13),
+      priceCents: 2500, maxResaleBps: 11000, supply: 120, sold: 83, organizer: "sakz" });
+    ev({ id: SEED_EVENTS.hack, name: "Hack Afterparty", venue: "Pier 9 Rooftop", startsAt: at(new Date(2026, 10, 8, 22, 0), 14),
+      priceCents: 1000, maxResaleBps: 11500, supply: 60, sold: 60, organizer: "alex" });
+    ev({ id: SEED_EVENTS.soon, name: "Soundcheck Session", venue: "Studio B", startsAt: now + 6 * 60 * 60 * 1000,
+      priceCents: 1500, maxResaleBps: 11000, supply: 40, sold: 12, organizer: "maya" });
+
+    const tkt = (id: string, eventId: string, ticketNo: number, owner: string, faceCents: number, listedCents: number) =>
+      this.tickets.set(id, { id, eventId, ticketNo, owner, faceCents, listedCents, giftsUsed: 0, checkedIn: false });
+    tkt("tkt_snl_031", SEED_EVENTS.snl, 31, "alex", 2500, 2600);
+    tkt("tkt_snl_052", SEED_EVENTS.snl, 52, "maya", 2500, 2750);
+    tkt("tkt_hack_017", SEED_EVENTS.hack, 17, "maya", 1000, 1100);
   }
 }
