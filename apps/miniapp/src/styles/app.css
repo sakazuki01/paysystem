@@ -102,7 +102,7 @@ p {
   flex: none;
   border-radius: var(--r-full);
   object-fit: cover;
-  background: var(--brand-soft);
+  background: var(--avatar-bg);
 }
 
 .avatar--initials {
@@ -457,7 +457,7 @@ p {
   height: 36px;
   padding: 0 var(--s-3) 0 var(--s-1);
   border-radius: var(--r-full);
-  background: var(--bg-secondary);
+  background: var(--avatar-bg);
   font: var(--type-label);
 }
 

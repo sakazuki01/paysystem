@@ -14,6 +14,8 @@
   --brand: #6A45F5;
   --brand-text: #6A45F5;
   --brand-soft: #6A45F51A;
+  /* Solid, so avatars look the same on bg and inside cards. Fallback = the mix over the default bg. */
+  --avatar-bg: #F0ECFE;
   --on-brand: #FFFFFF;
   --success: #14B86A;
   --success-soft: #14B86A1A;
@@ -81,8 +83,9 @@
   --text-muted: var(--tg-theme-hint-color, #9097A3);
   --separator: var(--tg-theme-section-separator-color, #2C2E36);
   --brand: #6F52F0;
-  --brand-text: #8F74FF;
+  --brand-text: #A08AFF;
   --brand-soft: #8F74FF26;
+  --avatar-bg: #29263E;
   --on-brand: #FFFFFF;
   --success: #2FD083;
   --success-soft: #2FD08326;
@@ -97,4 +100,14 @@
   --danger-text: #FF6369;
   --pending-text: #A3A9B3;
   --text-muted-on-card: #9097A3;
+}
+
+/* Track Telegram's own bg where color-mix is supported (older Android webviews keep the fallback). */
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  :root {
+    --avatar-bg: color-mix(in srgb, #6A45F5 10%, var(--bg));
+  }
+  :root[data-theme="dark"] {
+    --avatar-bg: color-mix(in srgb, #8F74FF 15%, var(--bg));
+  }
 }
