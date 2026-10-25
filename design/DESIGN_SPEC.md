@@ -222,6 +222,57 @@ Navigation: Home is the root. Everything else pushes on top and uses Telegram Ba
 - Amount, counterparty UserRow, status pill, timestamp, note, fee "Free", explorer link.
 - For a pending escrow: "Expires in 6 days" + a disabled **Refund** button. After expiry the button is enabled.
 
+## 5a. Local currency and phone accounts (v1.3)
+
+### Global display rules
+- All amounts show in the user's **local currency** first, with dollars secondary where it matters: the Home balance shows "₦199,200" in `--type-amount-l` with "$124.50 USDC" below it as the caption. Lists show local currency only. Confirm and Success show both ("₦10,000 · ≈ $6.25").
+- Format with `Intl.NumberFormat(locale, {style:'currency', currency})`. Currencies with 0 decimals (UGX) show none. Always `tabular-nums`.
+- Rate caption wherever a conversion is shown: "Rate ₦1,600/$ · updated 12 s ago" (muted caption).
+
+### S5 changes — amount entry
+- A currency toggle pill next to the amount: `₦ ⇄ $`. The secondary line under the amount shows the other currency: "≈ $6.25".
+- Quick chips use local round numbers (₦1,000 / ₦5,000 / ₦10,000 / ₦20,000), defined per currency in `currencies.ts`.
+
+### S6 changes — confirm
+- Amount "₦10,000" + caption "≈ $6.25 USDC". Quote countdown under the fee row: "Rate locked for 0:58". At 0 the rate refreshes, and if the amount changed: info banner "Rate updated: ≈ $6.24".
+
+### S4 changes — recipient
+- The search accepts phone numbers in national or international format. When it parses as a phone: a row with a phone icon avatar + "+234 801 234 5678" + caption ("@ada" if registered, or "Not on Pay System — they'll get a link to claim it").
+- After an escrow send to a phone: S8 shows a **Share link** MainButton (WhatsApp/SMS via the share sheet) instead of Done, plus a secondary "Done" link. Caption: "Send them this link so they can claim it".
+
+### S20 — Verify phone (onboarding, after S2; skippable)
+- Title "Add your phone number". Caption "Friends can pay you with it — it becomes your account number."
+- Inside Telegram: MainButton **Share my number** → Telegram `requestContact`. Web: a phone field with a country picker (flag + dial code, defaulted from locale) → **Send code** → 6-digit boxes (same component as S1c).
+- Success: Card "Your account number" `801 234 5678` with a copy icon. Caption "Kept private — only shown to people you pay." MainButton **Continue**.
+- Link "Skip for now". Later reachable from Profile.
+- Errors: "That number is already linked to another account", "That code isn't right".
+
+### S18 — Add money (top-up)
+- Entry: Home gets a third action under the balance. The row becomes **Add money** | **Send** | **Receive** (three equal buttons, Send stays the brand fill).
+- Step 1: the amount keypad in local currency + "You'll get ≈ $62.50" + fee line + limit caption.
+- Step 2: method list: Bank transfer (recommended pill), Card, Mobile money (shown only for countries that use it, per `currencies.ts`).
+- Step 3 (bank transfer): Card with "Bank Demo Bank · Account 0123456789 · Reference PS-7F3K2" (each with copy), a countdown "Quote valid for 9:41", MainButton **I've sent the money**.
+- Status screen: a vertical 3-step timeline (Waiting for payment → Payment received → Dollars added). Pending steps show a spinner, done steps `--success`. When it completes → S8 variant "₦100,000 added · $62.50".
+- A "Demo" pill in the header on every ramp screen while running on the mock.
+
+### S19 — Cash out (off-ramp)
+- Entry: Home → balance card overflow (⋯) → Cash out. Also from Profile.
+- Step 1: amount (max = balance; "Cash out all" chip). Step 2: destination: saved accounts, or "Add bank account" (bank picker with search → 10-digit account number → name lookup shows "ADA OBI" in a success-soft card for confirmation) or mobile money.
+- Step 3: confirm (amount, fee, "You'll receive ₦99,850", destination). MainButton **Cash out ₦100,000** (single-flight, intent ID as for sends).
+- Status timeline: Sending → Processing → Paid to your bank. Then S8 variant "₦99,850 is on its way to Access Bank ••4567".
+
+### Settings → Currency
+- A searchable list of currencies (flag, name, code). The selected one shows a check. Caption "Your money stays in dollars — this only changes how it's shown."
+
+### Copy
+| Case | Copy |
+|---|---|
+| Quote expired | "Rate updated: ≈ $6.24" |
+| Over the limit | "Over your daily limit of ₦500,000" |
+| Name lookup failed | "Couldn't find that account. Check the number and bank." |
+| Phone already used | "That number is already linked to another account" |
+| Incoming swap row | "Received 5.00 USDT → $4.99" |
+
 ## 5b. Tickets (v1.1)
 
 Entry point: on Home, below the Send/Receive pair and above any claim banner, add a full-width Card row with a ticket icon, "Tickets" (headline) and the caption "2 upcoming" or "Find events", plus a chevron. → S11.

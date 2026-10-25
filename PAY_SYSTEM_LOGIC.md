@@ -187,6 +187,51 @@ User types name
 - A connected external wallet signs its own transactions (the app still pays the fees). An embedded wallet signs silently.
 - **Program change:** `register_username` takes `telegram_id: Option<u64>`. If it's None (an email, Google, Apple or wallet user), no TelegramIndex is created. One-name-per-account for those users is enforced by the backend (it only co-signs one registration per account), and on-chain the owner wallet can't hold two names: add an `OwnerIndex` PDA `[b"owner", owner]`.
 
+## 6c. Local currency and phone-number accounts (v1.3, agreed with the user)
+
+### Principles
+1. **Hold dollars, show local currency.** Every balance is USDC on Solana. A user in Lagos sees ₦, Nairobi KSh, Accra GH₵. Converting happens only for **display**, for typing amounts, and when money **enters or leaves** the system (top-up or cash-out). No swap happens on ordinary payments, so ordinary payments can't fail halfway or pay a spread.
+2. **Any currency.** The local currency defaults from the phone number's country code (falling back to the Telegram language, then USD) and can be changed in Settings. Currencies are data, not code: `{code, symbol, decimals, locale}` in `packages/shared/currencies.ts`. Launch set: NGN, KES, GHS, ZAR, UGX, EGP, INR, PHP, BRL, MXN, USD, EUR, GBP.
+3. **Phone number = account number.** A verified phone number is an alias that points at the account, like @username. It's shown in national format as the "account number" (e.g. Nigeria `0801 234 5678` → account no. `801 234 5678`). Anyone can pay a phone number, even one that isn't registered yet (escrow).
+4. **Top-up and cash-out without P2P.** The user pays in their own currency (bank transfer, card or mobile money), and USDC lands in their account. Cash-out is the reverse, to their bank or mobile money. This needs a **licensed ramp partner per country** (e.g. Yellow Card for several African markets). The hackathon build runs it on a mocked `RampApi` with realistic screens, clearly labelled "Demo"; real partners plug in behind the same interface.
+
+### Phone verification
+- Inside Telegram: `requestContact()`. Telegram shares the user's verified number with their permission, at no cost and with no SMS.
+- On the web: an SMS one-time code (provider mocked for the hackathon).
+- Normalized to E.164 (`+2348012345678`) with libphonenumber. One phone → one account. Re-verification is required when the number is moved to a new account.
+- **Recycled numbers:** a phone alias that hasn't been re-verified for 12 months is released, and money sent to a released number goes into escrow instead of to the old account.
+
+### Privacy
+Phone numbers never go on-chain in plain text, and not as a plain hash either (the space of phone numbers is small enough to brute-force). The backend keeps `phone → account` and computes `alias_hash = HMAC-SHA256(server_secret, "phone:" + E164)`.
+
+**Escrow change (Milestone B):** the escrow seed's `handle_hash` becomes **`alias_hash`**, the same HMAC for both Telegram handles (`"tg:" + handle`) and phones. So nothing reversible about a person is on-chain, and the backend's claim co-signature is what proves the claimer owns the alias.
+
+### Sending in local currency
+- The user types `₦10,000`. The app fetches a quote (`FxApi`) of, say, ₦1,600 per $1 and shows "≈ $6.25 · rate ₦1,600/$". On Confirm, the quote is **locked for 60 s**, and the program receives **6.25 USDC** (6 decimals, rounded DOWN so we never over-send).
+- If the quote expires on Confirm, refresh it and show the new amount before sending ("Rate updated: ≈ $6.24").
+- The recipient sees the dollars in *their* currency at *their* rate. A Kenyan receiving $6.25 sees ≈ KSh 806.
+
+### Receiving other tokens
+- Incoming **USDT** or **SOL** to a user's wallet is swapped to USDC automatically (Jupiter on mainnet, mocked on devnet), and the activity shows "Received 5.00 USDT → $4.99". Embedded wallets authorise the swap through a pre-approved session permission; external wallets get a one-tap prompt.
+- Dust (under $0.10) isn't swapped.
+
+### Top-up (on-ramp) flow
+```
+Add money → amount in local currency → quote ("You'll get $62.50", locked 10 min)
+  → method: bank transfer (shows partner account no. + reference) | card | mobile money
+  → partner confirms payment → partner sends USDC to the user's wallet
+  → status timeline: Waiting for payment → Payment received → Dollars added
+```
+
+### Cash-out (off-ramp) flow
+```
+Cash out → amount in local currency (max = balance) → choose bank / mobile money
+  → account-name lookup ("ADA OBI — Access Bank") → quote locked 10 min
+  → user signs a USDC transfer to the partner → partner pays out
+  → status: Sending → Processing → Paid to your bank
+```
+Fees are shown up front, as a single line: "Fee ₦150". On the real system, KYC level limits apply (shown as "Limit ₦500,000/day — verify ID to raise it"; mocked).
+
 ## 7. Payment flows
 
 ### 7.1 Send to a registered username
